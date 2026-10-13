@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Users Management – SmartLib Admin{% endblock %}
+{% block page_title %}👥 Library Patrons &amp; Members{% endblock %}
+{% block page_subtitle %}Manage student accounts, membership statuses, and borrowing privileges{% endblock %}
+
+{% block content %}
+<!-- Search & Filters -->
+<div class="card filter-card">
+  <form method="GET" action="{{ url_for('admin.users') }}" class="filter-grid members-filter-grid">
+    <div class="filter-group">
+      <label for="search">Search Patron</label>
+      <div class="input-with-icon">
+        <span class="field-icon">🔍</span>
+        <input type="text" id="search" name="search" value="{{ search_query or '' }}" placeholder="Name, student ID, email, or phone...">
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <label for="status">Account Status</label>
+      <select id="status" name="status" class="form-select" onchange="this.form.submit()">
+        <option value="">All Statuses</option>
+        <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active Only</option>
+        <option value="blocked" {% if selected_status == 'blocked' %}selected{% endif %}>Blocked Only</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="department_id">Department</label>
+      <select id="department_id" name="department_id" class="form-select" onchange="this.form.submit()">
+        <option value="">All Departments</option>
+        {% for d in departments %}
+          <option value="{{ d.id }}" {% if selected_dept == d.id|string %}selected{% endif %}>
+            {{ d.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-action-group">
+      <a href="{{ url_for('admin.users') }}" class="btn btn-ghost btn-sm">✕ Clear</a>
+    </div>
+  </form>
+</div>
+
+<!-- Users Table -->
+<div class="card">
+  <div class="card-header flex-between">
+    <span class="count-badge">Showing {{ users|length }} registered patrons</span>
+    <span class="text-muted text-xs">Blocked users cannot issue new books until unblocked</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Student ID</th>
+            <th>Email</th>
+            <th>Mobile</th>
+            <th>Department</th>
+            <th>Status</th>
+            <th>Active Loans</th>
+            <th class="text-right">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if users %}
+            {% for u in users %}
+              <tr>
+                <td>
+                  <div class="table-cell-title">{{ u.full_name }}</div>
+                  <div class="table-cell-subtitle text-xs text-muted">Joined {{ u.created_at[:10] }}</div>
+                </td>
+                <td class="font-mono text-sm"><strong>{{ u.student_id or '—' }}</strong></td>
+                <td>{{ u.email }}</td>
+                <td>{{ u.mobile or '—' }}</td>
+                <td><span class="badge badge-muted">{{ u.department_name or 'General' }}</span></td>
+                <td>
+                  {% if u.status == 'active' %}
+                    <span class="badge badge-success" id="status-badge-{{ u.id }}">Active</span>
+                  {% else %}
+                    <span class="badge badge-danger" id="status-badge-{{ u.id }}">Blocked</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="badge {{ 'badge-warning' if u.active_loans_count > 0 else 'badge-muted' }}">
+                    {{ u.active_loans_count }} Books
+                  </span>
+                </td>
+                <td class="text-right">
+                  <div class="flex-gap" style="justify-content: flex-end;">
+                    <a href="{{ url_for('transactions.transactions_list', search=u.student_id or u.email) }}" class="btn btn-secondary btn-xs" title="View loans history">
+                      📜 History
+                    </a>
+                    <button type="button" 
+                            class="btn {{ 'btn-outline-danger' if u.status == 'active' else 'btn-success' }} btn-xs"
+                            id="btn-block-{{ u.id }}"
+                            onclick="toggleUserStatusAjax({{ u.id }}, '{{ u.full_name|replace('\'', '\\\'') }}')">
+                      {{ '🚫 Block' if u.status == 'active' else '✅ Unblock' }}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="8" class="text-center text-muted" style="padding: 2.5rem;">
+                No patrons found matching your search.
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toggleUserStatusAjax(userId, name) {
+  const btn = document.getElementById(`btn-block-${userId}`);
+  const isBlocking = btn.textContent.includes('Block');
+  const actionText = isBlocking ? 'block' : 'unblock';
+
+  if (confirm(`Are you sure you want to ${actionText} patron "${name}"?`)) {
+    fetch(`/admin/users/status/${userId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (res.success) {
+        showToast(res.message, 'success');
+        const badge = document.getElementById(`status-badge-${userId}`);
+        if (res.new_status === 'blocked') {
+          badge.className = 'badge badge-danger';
+          badge.textContent = 'Blocked';
+          btn.className = 'btn btn-success btn-xs';
+          btn.textContent = '✅ Unblock';
+        } else {
+          badge.className = 'badge badge-success';
+          badge.textContent = 'Active';
+          btn.className = 'btn btn-outline-danger btn-xs';
+          btn.textContent = '🚫 Block';
+        }
+      } else {
+        showToast(res.message, 'danger');
+      }
+    })
+    .catch(() => showToast("Error changing user status.", 'danger'));
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}403 - Access Denied – SmartLib{% endblock %}
+{% block page_title %}Access Denied{% endblock %}
+{% block content %}
+<div class="card text-center" style="padding: 4rem 2rem; max-width: 600px; margin: 2rem auto;">
+  <span style="font-size: 3.5rem; display: block; margin-bottom: 1rem;">🚫</span>
+  <h2>403 - Restricted Administration Area</h2>
+  <p class="text-secondary mt-2 mb-4">You do not have administrative privileges to access this area of SmartLib.</p>
+  <div>
+    <a href="{{ url_for('user.dashboard') }}" class="btn btn-primary">Go to Student Dashboard</a>
+  </div>
+</div>
+{% endblock %}

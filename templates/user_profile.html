@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile – SmartLib{% endblock %}
+{% block page_title %}👤 Student Profile{% endblock %}
+{% block page_subtitle %}Your registered library membership details{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width: 650px; margin: 0 auto;">
+  <div class="card-header flex-between">
+    <div class="flex-gap">
+      <div class="stat-icon-wrapper bg-indigo-light" style="width: 44px; height: 44px;">
+        🎓
+      </div>
+      <div>
+        <h3 class="card-title">{{ user.full_name }}</h3>
+        <span class="text-xs text-muted">Patron ID: {{ user.student_id }}</span>
+      </div>
+    </div>
+    <span class="badge badge-success">Active Member</span>
+  </div>
+
+  <div class="card-body">
+    <div class="health-summary-list">
+      <div class="health-item health-ok">
+        <div>
+          <span class="text-xs text-muted">Student Roll / ID</span>
+          <div><strong class="font-mono">{{ user.student_id }}</strong></div>
+        </div>
+      </div>
+
+      <div class="health-item health-ok">
+        <div>
+          <span class="text-xs text-muted">Email Address</span>
+          <div><strong>{{ user.email }}</strong></div>
+        </div>
+      </div>
+
+      <div class="health-item health-ok">
+        <div>
+          <span class="text-xs text-muted">Contact Mobile</span>
+          <div><strong>{{ user.mobile or 'Not Provided' }}</strong></div>
+        </div>
+      </div>
+
+      <div class="health-item health-ok">
+        <div>
+          <span class="text-xs text-muted">Academic Department</span>
+          <div><strong class="badge badge-indigo">{{ user.department_name }}</strong></div>
+        </div>
+      </div>
+
+      <div class="health-item health-ok">
+        <div>
+          <span class="text-xs text-muted">Active Book Borrowings</span>
+          <div><strong>{{ stats.my_issued }} Books Currently On Loan</strong></div>
+        </div>
+      </div>
+
+      <div class="health-item health-ok">
+        <div>
+          <span class="text-xs text-muted">Membership Registration Date</span>
+          <div><strong>{{ user.created_at[:10] }}</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

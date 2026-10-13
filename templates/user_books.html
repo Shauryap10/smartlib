@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Browse Books – SmartLib Catalog{% endblock %}
+{% block page_title %}Library Books Catalog{% endblock %}
+{% block page_subtitle %}Search and explore books across engineering and general subjects{% endblock %}
+
+{% block content %}
+<!-- Multi-Filter & Search Bar -->
+<div class="card filter-card">
+  <form method="GET" action="{{ url_for('user.books') }}" class="filter-grid" id="user-books-filter-form">
+    <div class="filter-group">
+      <label for="search">Search Book</label>
+      <div class="input-with-icon">
+        <span class="field-icon">🔍</span>
+        <input type="text" id="search" name="search" value="{{ search_query or '' }}" placeholder="Title, author, or ISBN...">
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <label for="department_id">Department ▼</label>
+      <select id="department_id" name="department_id" class="form-select" onchange="this.form.submit()">
+        <option value="All">All Departments</option>
+        {% for d in departments %}
+          <option value="{{ d.id }}" {% if selected_dept == d.id|string %}selected{% endif %}>
+            {{ d.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="category_id">Category ▼</label>
+      <select id="category_id" name="category_id" class="form-select" onchange="this.form.submit()">
+        <option value="All">All Categories</option>
+        {% for c in categories %}
+          <option value="{{ c.id }}" {% if selected_cat == c.id|string %}selected{% endif %}>
+            {{ c.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="availability">Availability ▼</label>
+      <select id="availability" name="availability" class="form-select" onchange="this.form.submit()">
+        <option value="All" {% if selected_avail == 'All' %}selected{% endif %}>All</option>
+        <option value="Available" {% if selected_avail == 'Available' %}selected{% endif %}>In Stock Only</option>
+        <option value="Out of Stock" {% if selected_avail == 'Out of Stock' %}selected{% endif %}>Out of Stock</option>
+      </select>
+    </div>
+
+    <div class="filter-action-group">
+      <a href="{{ url_for('user.books') }}" class="btn btn-ghost btn-sm" title="Reset all search filters">
+        ✕ Clear
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- Books Catalog Table Card -->
+<div class="card">
+  <div class="card-header flex-between">
+    <span class="count-badge">Showing {{ books|length }} books in catalog</span>
+    <span class="text-muted text-xs">To check out a book, visit the Library Circulation Desk with your Student ID</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Book Title</th>
+            <th>Author</th>
+            <th>Department</th>
+            <th>Category</th>
+            <th>ISBN</th>
+            <th>Availability</th>
+            <th class="text-right">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if books %}
+            {% for b in books %}
+              <tr>
+                <td>
+                  <div class="table-cell-title">{{ b.title }}</div>
+                </td>
+                <td>{{ b.author }}</td>
+                <td>
+                  <span class="badge badge-dept-{{ b.department_code|lower }}">
+                    {{ b.department_name }}
+                  </span>
+                </td>
+                <td><span class="badge badge-muted">{{ b.category_name or 'General' }}</span></td>
+                <td class="font-mono text-sm">{{ b.isbn }}</td>
+                <td>
+                  {% if b.available_copies > 0 %}
+                    <span class="badge badge-success">{{ b.available_copies }} in stock</span>
+                  {% else %}
+                    <span class="badge badge-danger">All copies borrowed</span>
+                  {% endif %}
+                </td>
+                <td class="text-right">
+                  <button type="button" class="btn btn-secondary btn-xs" onclick="viewBookDetailsModal('{{ b.title|replace('\'', '\\\'') }}', '{{ b.author|replace('\'', '\\\'') }}', '{{ b.isbn }}', '{{ b.department_name }}', '{{ b.category_name }}', {{ b.available_copies }}, {{ b.total_copies }})">
+                    👁️ Details
+                  </button>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="7" class="text-center text-muted" style="padding: 3rem;">
+                <span style="font-size: 2rem; display: block; margin-bottom: 0.5rem;">🔍</span>
+                No books found matching your current filter criteria.
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Student View Book Details -->
+<div class="modal-backdrop" id="book-details-modal">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3 class="modal-title" id="detail-title">Book Details</h3>
+      <button type="button" class="modal-close-btn" onclick="closeBookDetailsModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="scanned-book-details">
+        <div class="scanned-book-title" id="modal-book-title"></div>
+        <div class="scanned-book-author" id="modal-book-author"></div>
+        <div class="scanned-meta-row mt-2">
+          <span class="badge badge-indigo" id="modal-book-dept"></span>
+          <span class="badge badge-muted" id="modal-book-cat"></span>
+          <span class="font-mono text-xs" id="modal-book-isbn"></span>
+        </div>
+        <div class="scanned-copies-bar mt-3">
+          <span>Stock Status:</span>
+          <span id="modal-book-status"></span>
+        </div>
+      </div>
+      <p class="text-xs text-muted mt-3">
+        📍 To borrow this physical copy, present the ISBN or Title at the Library Circulation Desk.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="closeBookDetailsModal()">Close</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function viewBookDetailsModal(title, author, isbn, dept, cat, avail, total) {
+  document.getElementById('modal-book-title').textContent = title;
+  document.getElementById('modal-book-author').textContent = `by ${author}`;
+  document.getElementById('modal-book-dept').textContent = dept;
+  document.getElementById('modal-book-cat').textContent = cat || 'General';
+  document.getElementById('modal-book-isbn').textContent = `ISBN: ${isbn}`;
+  document.getElementById('modal-book-status').innerHTML = avail > 0 
+    ? `<strong class="text-emerald">${avail} of ${total} Copies Available</strong>`
+    : `<strong class="text-rose">Out of Stock (0 of ${total} available)</strong>`;
+  document.getElementById('book-details-modal').classList.add('open');
+}
+
+function closeBookDetailsModal() {
+  document.getElementById('book-details-modal').classList.remove('open');
+}
+</script>
+{% endblock %}

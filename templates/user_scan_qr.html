@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block title %}📷 Scan Book QR – SmartLib Student{% endblock %}
+{% block page_title %}📷 Scan Book QR{% endblock %}
+{% block page_subtitle %}Point your mobile phone camera at a book QR code to check availability{% endblock %}
+
+{% block content %}
+<div class="qr-scanner-layout">
+  <!-- Left Column: Camera Scanner Container -->
+  <div class="card qr-camera-card">
+    <div class="card-header flex-between">
+      <div>
+        <h3 class="card-title">Live QR Camera Scanner</h3>
+        <span class="text-muted text-xs">Supports Mobile Camera &amp; Webcam</span>
+      </div>
+      <div class="camera-status-pill" id="camera-status-pill">
+        <span class="pulse-indicator"></span>
+        <span id="camera-status-text">Scanner Idle</span>
+      </div>
+    </div>
+
+    <div class="card-body">
+      <!-- Camera Viewport Area -->
+      <div class="qr-viewport-wrapper">
+        <div id="qr-reader" class="qr-reader-container"></div>
+        <div class="scanner-laser" id="scanner-laser" style="display: none;"></div>
+        
+        <div class="scanner-placeholder" id="scanner-placeholder">
+          <div class="scanner-target-box">
+            <div class="target-corner tl"></div>
+            <div class="target-corner tr"></div>
+            <div class="target-corner bl"></div>
+            <div class="target-corner br"></div>
+            <span class="scanner-center-icon">📷</span>
+          </div>
+          <p class="scanner-prompt-text">Click "Start Scanner" to begin scanning book QR codes.</p>
+          <span class="text-muted text-xs">We automatically use rear camera on mobile devices</span>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="scanner-controls">
+        <button type="button" class="btn btn-primary" id="btn-start-scanner" onclick="startScanner()">
+          ▶️ Start Scanner
+        </button>
+        <button type="button" class="btn btn-outline-danger" id="btn-stop-scanner" onclick="stopScanner()" disabled>
+          ⏹️ Stop Scanner
+        </button>
+      </div>
+
+      <div class="alert alert-warning mt-3" id="camera-permission-alert" style="display: none;">
+        <span class="alert-icon">⚠️</span>
+        <div class="alert-body">
+          <strong>Camera Permission Required</strong>
+          <p>Please grant camera access, or use the manual ISBN search below.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column: Scan Result & Fallback -->
+  <div class="qr-side-panels">
+    <div class="card result-card" id="scan-result-card">
+      <div class="card-header">
+        <h3 class="card-title" id="scan-result-title">Book Search Result</h3>
+        <span class="text-muted text-xs" id="scan-result-meta">Scan a code to see details</span>
+      </div>
+      <div class="card-body" id="scan-result-body">
+        <div class="empty-result-state" id="empty-scan-state">
+          <span class="empty-icon">🎯</span>
+          <p>No QR code scanned yet.</p>
+          <span class="text-muted text-xs">Scan any book on library shelves to check if copies are available for borrowing.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manual Fallback Search -->
+    <div class="card manual-isbn-card">
+      <div class="card-header">
+        <h3 class="card-title">Manual ISBN Entry</h3>
+        <p class="card-subtitle">Search by typing the ISBN or Book ID</p>
+      </div>
+      <div class="card-body">
+        <form onsubmit="handleManualSearch(event)">
+          <div class="form-group mb-2">
+            <label for="manual-isbn-input">Enter ISBN or Book ID:</label>
+            <div class="input-with-button">
+              <input type="text" id="manual-isbn-input" class="form-control" placeholder="e.g. 9780132350884" required>
+              <button type="submit" class="btn btn-indigo">Search</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Demo Tester Badges -->
+    <div class="card demo-simulator-card">
+      <div class="card-header">
+        <h3 class="card-title">⚡ Quick Sample Searches</h3>
+        <span class="text-muted text-xs">Click to test instant lookup</span>
+      </div>
+      <div class="card-body">
+        <div class="quick-test-badges">
+          <button type="button" class="test-pill" onclick="triggerLookup('9780132350884')">
+            💻 Clean Code (9780132350884)
+          </button>
+          <button type="button" class="test-pill" onclick="triggerLookup('9781593279288')">
+            💻 Python Crash Course (9781593279288)
+          </button>
+          <button type="button" class="test-pill" onclick="triggerLookup('9780062315007')">
+            📚 The Alchemist (9780062315007)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let html5QrScanner = null;
+let isScanning = false;
+
+function startScanner() {
+  if (typeof Html5Qrcode === 'undefined') {
+    document.getElementById('camera-permission-alert').style.display = 'flex';
+    return;
+  }
+  if (isScanning) return;
+
+  try {
+    if (!html5QrScanner) {
+      html5QrScanner = new Html5Qrcode("qr-reader");
+    }
+
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+    html5QrScanner.start(
+      { facingMode: "environment" },
+      config,
+      (decodedText) => {
+        triggerLookup(decodedText);
+      },
+      (error) => {}
+    ).then(() => {
+      isScanning = true;
+      document.getElementById('camera-status-pill').className = 'camera-status-pill active';
+      document.getElementById('camera-status-text').textContent = 'Scanning live';
+      document.getElementById('btn-start-scanner').disabled = true;
+      document.getElementById('btn-stop-scanner').disabled = false;
+      document.getElementById('scanner-laser').style.display = 'block';
+      document.getElementById('scanner-placeholder').style.display = 'none';
+      showToast("QR scanner active", "success");
+    }).catch(() => {
+      document.getElementById('camera-permission-alert').style.display = 'flex';
+      showToast("Camera access unavailable. Use manual search.", "warning");
+    });
+  } catch (e) {
+    document.getElementById('camera-permission-alert').style.display = 'flex';
+  }
+}
+
+function stopScanner() {
+  if (html5QrScanner && isScanning) {
+    html5QrScanner.stop().then(() => {
+      isScanning = false;
+      document.getElementById('camera-status-pill').className = 'camera-status-pill idle';
+      document.getElementById('camera-status-text').textContent = 'Scanner Idle';
+      document.getElementById('btn-start-scanner').disabled = false;
+      document.getElementById('btn-stop-scanner').disabled = true;
+      document.getElementById('scanner-laser').style.display = 'none';
+      document.getElementById('scanner-placeholder').style.display = 'flex';
+      showToast("QR scanner stopped", "info");
+    });
+  }
+}
+
+function handleManualSearch(e) {
+  e.preventDefault();
+  const val = document.getElementById('manual-isbn-input').value.trim();
+  if (val) triggerLookup(val);
+}
+
+function triggerLookup(query) {
+  document.getElementById('manual-isbn-input').value = query;
+
+  fetch(`/api/books/lookup/${encodeURIComponent(query)}`)
+    .then(r => r.json())
+    .then(data => {
+      const title = document.getElementById('scan-result-title');
+      const meta = document.getElementById('scan-result-meta');
+      const body = document.getElementById('scan-result-body');
+
+      if (data.found && data.book) {
+        const b = data.book;
+        title.textContent = "✅ Book Found";
+        meta.textContent = `Scanned Query: "${query}"`;
+
+        body.innerHTML = `
+          <div class="scanned-book-details">
+            <div class="scanned-book-title">${b.title}</div>
+            <div class="scanned-book-author">by ${b.author}</div>
+            <div class="scanned-meta-row">
+              <span class="badge badge-dept-${(b.department_code || 'gen').toLowerCase()}">
+                ${b.department_name}
+              </span>
+              <span class="badge badge-muted">${b.category_name || 'General'}</span>
+              <span class="font-mono text-sm">ISBN: <strong>${b.isbn}</strong></span>
+            </div>
+            <div class="scanned-copies-bar">
+              <span>Availability:</span>
+              <span>
+                ${b.available_copies > 0 
+                  ? `<strong class="text-emerald">${b.available_copies} of ${b.total_copies} Copies Available</strong>`
+                  : `<strong class="text-rose">Out of Stock (0 of ${b.total_copies} available)</strong>`}
+              </span>
+            </div>
+          </div>
+          <p class="text-xs text-muted mt-2">
+            📍 To check out this book, present ISBN <strong>${b.isbn}</strong> at the circulation desk.
+          </p>
+        `;
+        showToast("Book found in catalog", "success");
+      } else {
+        title.textContent = "Book Not Found";
+        meta.textContent = `Query: "${query}"`;
+        body.innerHTML = `
+          <div class="alert alert-warning">
+            <span class="alert-icon">⚠️</span>
+            <div class="alert-body">
+              No book matching "${query}" was found in the library database.
+            </div>
+          </div>
+        `;
+        showToast("Book not found in library", "warning");
+      }
+    });
+}
+</script>
+{% endblock %}

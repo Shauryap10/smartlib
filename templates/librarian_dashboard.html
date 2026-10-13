@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}Librarian Dashboard – SmartLib Admin{% endblock %}
+{% block page_title %}Librarian Dashboard{% endblock %}
+{% block page_subtitle %}Administrative Overview, Department Metrics & Circulation KPIs{% endblock %}
+
+{% block content %}
+<!-- KPI Stats Grid -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon-wrapper bg-indigo-light">
+      <span class="stat-icon">📚</span>
+    </div>
+    <div class="stat-details">
+      <span class="stat-label">Total Books</span>
+      <span class="stat-value">{{ stats.distinct_books }}</span>
+      <span class="stat-subtext">Distinct catalog titles</span>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon-wrapper bg-blue-light">
+      <span class="stat-icon">📦</span>
+    </div>
+    <div class="stat-details">
+      <span class="stat-label">Total Copies</span>
+      <span class="stat-value">{{ stats.total_copies }}</span>
+      <span class="stat-subtext">{{ stats.available_copies }} available now</span>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon-wrapper bg-purple-light">
+      <span class="stat-icon">👥</span>
+    </div>
+    <div class="stat-details">
+      <span class="stat-label">Total Users</span>
+      <span class="stat-value">{{ stats.total_users }}</span>
+      <span class="stat-subtext">Registered patrons</span>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon-wrapper bg-amber-light">
+      <span class="stat-icon">🔄</span>
+    </div>
+    <div class="stat-details">
+      <span class="stat-label">Active Loans</span>
+      <span class="stat-value text-amber">{{ stats.active_transactions }}</span>
+      <span class="stat-subtext">Currently borrowed</span>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon-wrapper bg-rose-light">
+      <span class="stat-icon">⚠️</span>
+    </div>
+    <div class="stat-details">
+      <span class="stat-label">Overdue Books</span>
+      <span class="stat-value text-rose">{{ stats.overdue_books }}</span>
+      <span class="stat-subtext">₹{{ stats.total_fines }} unpaid fines</span>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon-wrapper bg-emerald-light">
+      <span class="stat-icon">🏢</span>
+    </div>
+    <div class="stat-details">
+      <span class="stat-label">Departments</span>
+      <span class="stat-value">{{ stats.total_departments }}</span>
+      <span class="stat-subtext">Academic branches</span>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Action Banner -->
+<div class="dashboard-banner">
+  <div class="banner-content">
+    <h3>Librarian Command Center</h3>
+    <p>Point camera at any book QR code to verify stock, increase copies, or register new inventory seamlessly.</p>
+  </div>
+  <div class="banner-buttons">
+    <a href="{{ url_for('books.scan_qr') }}" class="btn btn-white">
+      📷 Scan Book QR
+    </a>
+    <a href="{{ url_for('books.books_list') }}" class="btn btn-outline-white">
+      📚 Manage Catalog
+    </a>
+    <a href="{{ url_for('transactions.transactions_list') }}" class="btn btn-outline-white">
+      🔄 Issue / Return Book
+    </a>
+  </div>
+</div>
+
+<!-- Department Overview Cards Section -->
+<div class="card dashboard-section">
+  <div class="card-header flex-between">
+    <div>
+      <h3 class="card-title">Department-wise Book Statistics</h3>
+      <p class="card-subtitle">Real-time copy allocation across academic departments from SQLite database</p>
+    </div>
+    <a href="{{ url_for('books.departments') }}" class="btn btn-ghost btn-sm">
+      Explore Compartments 🗂️ &rarr;
+    </a>
+  </div>
+  <div class="card-body">
+    <div class="dept-overview-grid">
+      {% for dept in dept_stats %}
+        <div class="dept-pill-card" onclick="window.location.href='{{ url_for('books.books_list', department_id=dept.id) }}'">
+          <div class="dept-pill-top">
+            <span class="dept-pill-title">{{ dept.icon }} {{ dept.name }}</span>
+            <span class="dept-pill-count">{{ dept.total_copies }}</span>
+          </div>
+          <div class="dept-progress-bar">
+            <div class="dept-progress-fill" style="width: {{ dept.circulation_rate }}%;"></div>
+          </div>
+          <div class="dept-pill-sub">
+            <span>{{ dept.different_books }} books • {{ dept.available_copies }} avail</span>
+            <span>{{ dept.circulation_rate }}% loaned</span>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Split Grid: Recent Transactions & Overdue Books -->
+<div class="dashboard-split-grid">
+  <!-- Recent Transactions Table -->
+  <div class="card">
+    <div class="card-header flex-between">
+      <div>
+        <h3 class="card-title">Recent Transactions</h3>
+        <p class="card-subtitle">Latest book loans and returns</p>
+      </div>
+      <a href="{{ url_for('transactions.transactions_list') }}" class="btn btn-ghost btn-sm">
+        View All &rarr;
+      </a>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Book</th>
+              <th>Patron</th>
+              <th>Due Date</th>
+              <th>Status</th>
+              <th class="text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if recent_transactions %}
+              {% for tx in recent_transactions %}
+                <tr>
+                  <td>
+                    <div class="table-cell-title">{{ tx.book_title }}</div>
+                    <div class="table-cell-subtitle font-mono">{{ tx.book_isbn }}</div>
+                  </td>
+                  <td>
+                    <div class="table-cell-title">{{ tx.user_name }}</div>
+                    <div class="table-cell-subtitle font-mono">{{ tx.user_student_id or '' }}</div>
+                  </td>
+                  <td class="font-mono text-sm {{ 'text-rose font-bold' if tx.is_overdue else '' }}">{{ tx.due_date }}</td>
+                  <td>
+                    {% if tx.status == 'issued' %}
+                      {% if tx.is_overdue %}
+                        <span class="badge badge-danger">Overdue (₹{{ tx.current_fine }})</span>
+                      {% else %}
+                        <span class="badge badge-warning">Active Loan</span>
+                      {% endif %}
+                    {% else %}
+                      <span class="badge badge-success">Returned</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-right">
+                    {% if tx.status == 'issued' %}
+                      <button class="btn btn-outline-primary btn-xs" onclick="returnBookAjax({{ tx.id }})">
+                        ↩️ Return
+                      </button>
+                    {% else %}
+                      <span class="text-muted text-xs">Closed</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="5" class="text-center text-muted" style="padding: 2rem;">No loan transactions recorded yet.</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recently Added Books & Overdue Alerts -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Recently Added Catalog Books</h3>
+      <p class="card-subtitle">Latest acquisitions in library database</p>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Dept</th>
+              <th>Copies</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for b in recent_books %}
+              <tr>
+                <td>
+                  <div class="table-cell-title">{{ b.title }}</div>
+                  <div class="table-cell-subtitle">by {{ b.author }}</div>
+                </td>
+                <td><span class="badge badge-muted text-xs">{{ b.department_name }}</span></td>
+                <td><strong>{{ b.available_copies }}</strong> / {{ b.total_copies }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function returnBookAjax(txId) {
+  if (confirm("Confirm return of this borrowed book?")) {
+    fetch(`/api/transactions/return/${txId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (res.success) {
+        showToast(res.message, 'success');
+        setTimeout(() => location.reload(), 800);
+      } else {
+        showToast(res.message, 'danger');
+      }
+    })
+    .catch(() => showToast("Network error returning book.", 'danger'));
+  }
+}
+</script>
+{% endblock %}

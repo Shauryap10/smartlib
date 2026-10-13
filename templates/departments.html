@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Department Compartments – SmartLib{% endblock %}
+{% block page_title %}🗂️ Department Compartments{% endblock %}
+{% block page_subtitle %}Academic book shelves with dynamic inventory distribution from database{% endblock %}
+
+{% block content %}
+<!-- 5 Department Summary Cards -->
+<div class="dept-cards-grid">
+  {% for dept in dept_stats %}
+    <div class="department-card">
+      <div>
+        <div class="dept-card-header">
+          <div class="dept-card-icon">{{ dept.icon }}</div>
+          <div>
+            <div class="dept-card-title">{{ dept.name }}</div>
+            <span class="text-xs text-muted">Branch Code: {{ dept.code }}</span>
+          </div>
+        </div>
+        <div class="dept-metrics-box">
+          <div class="metric-line">
+            <span>Total Copies</span>
+            <strong>{{ dept.total_copies }}</strong>
+          </div>
+          <div class="metric-line">
+            <span>Distinct Titles</span>
+            <strong>{{ dept.different_books }}</strong>
+          </div>
+          <div class="metric-line">
+            <span>Available Copies</span>
+            <strong class="text-emerald">{{ dept.available_copies }}</strong>
+          </div>
+          <div class="metric-line">
+            <span>Circulation Rate</span>
+            <span>{{ dept.circulation_rate }}%</span>
+          </div>
+        </div>
+      </div>
+      {% if current_user and current_user.role == 'librarian' %}
+        <a href="{{ url_for('books.books_list', department_id=dept.id) }}" class="btn btn-outline-primary btn-sm btn-block">
+          View Books in Catalog &rarr;
+        </a>
+      {% else %}
+        <a href="{{ url_for('user.books', department_id=dept.id) }}" class="btn btn-outline-primary btn-sm btn-block">
+          Explore Books &rarr;
+        </a>
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>
+
+<!-- Department Shelves Compartments Container -->
+<div class="compartments-shelf-header">
+  <h3>Academic Department Book Shelves</h3>
+  <p>Physical shelf allocation and inventory breakdown pulled dynamically from the database</p>
+</div>
+
+<div class="department-shelves-container">
+  {% for dept in dept_stats %}
+    <div class="shelf-box" id="dept-shelf-{{ dept.id }}">
+      <div class="shelf-box-header">
+        <div class="shelf-box-title">
+          <span>{{ dept.icon }}</span>
+          <span>{{ dept.name }}</span>
+          <span class="badge {{ dept.badge_class }}">
+            {{ dept.different_books }} Books • {{ dept.total_copies }} Copies
+          </span>
+        </div>
+        {% if current_user and current_user.role == 'librarian' %}
+          <a href="{{ url_for('books.books_list', department_id=dept.id) }}" class="btn btn-ghost btn-xs">
+            Filter in Catalog &rarr;
+          </a>
+        {% else %}
+          <a href="{{ url_for('user.books', department_id=dept.id) }}" class="btn btn-ghost btn-xs">
+            Browse in Catalog &rarr;
+          </a>
+        {% endif %}
+      </div>
+
+      <div class="shelf-books-grid">
+        {% if dept.books %}
+          {% for b in dept.books %}
+            <div class="shelf-book-card">
+              <div>
+                <div class="shelf-book-title">{{ b.title }}</div>
+                <div class="shelf-book-author">by {{ b.author }}</div>
+              </div>
+              <div>
+                <div class="shelf-book-meta">
+                  <span class="font-mono text-xs text-muted">{{ b.isbn }}</span>
+                  <span class="badge {{ 'badge-success' if b.available_copies > 0 else 'badge-danger' }}">
+                    {{ b.available_copies }}/{{ b.total_copies }} Avail
+                  </span>
+                </div>
+                {% if current_user and current_user.role == 'librarian' %}
+                  <div class="shelf-book-actions mt-2">
+                    <button type="button" class="btn btn-outline-primary btn-xs" onclick="quickAddCopy({{ b.id }}, '{{ b.title|replace('\'', '\\\'') }}')">
+                      + Copy
+                    </button>
+                    <a href="{{ url_for('books.books_list', search=b.isbn) }}" class="btn btn-secondary btn-xs">
+                      Manage
+                    </a>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-shelf-state" style="grid-column: 1 / -1;">
+            <span>📚 No books currently assigned to this compartment.</span>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function quickAddCopy(bookId, title) {
+  fetch(`/api/books/add-copy/${bookId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ count: 1 })
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      showToast(res.message, 'success');
+      setTimeout(() => location.reload(), 600);
+    } else {
+      showToast(res.message, 'danger');
+    }
+  })
+  .catch(() => showToast("Error adding copy.", 'danger'));
+}
+</script>
+{% endblock %}
