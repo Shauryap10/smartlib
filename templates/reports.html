@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Reports &amp; Analytics – SmartLib Admin{% endblock %}
+{% block page_title %}📊 Library Reports &amp; Analytics{% endblock %}
+{% block page_subtitle %}Department audits, inventory metrics, category distribution, and overdue fines{% endblock %}
+
+{% block content %}
+<div class="view-header-bar flex-between">
+  <div>
+    <h2 class="view-heading">Audit &amp; Intelligence Reports</h2>
+  </div>
+  <button type="button" class="btn btn-outline-primary btn-sm" onclick="window.print()">
+    🖨️ Print Report
+  </button>
+</div>
+
+<!-- Department-Wise Inventory & Circulation Audit Table -->
+<div class="card mb-4">
+  <div class="card-header flex-between">
+    <div>
+      <h3 class="card-title">Department-Wise Book Inventory Report</h3>
+      <p class="card-subtitle">Real-time copy count, availability, and active loans per academic department</p>
+    </div>
+    <span class="badge badge-indigo">Database Audit</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Academic Department</th>
+            <th>Distinct Books</th>
+            <th>Total Copies</th>
+            <th>Available Copies</th>
+            <th>Issued Copies</th>
+            <th>Circulation Rate</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in dept_stats %}
+            <tr>
+              <td>
+                <span class="badge {{ d.badge_class }}">
+                  {{ d.icon }} {{ d.name }}
+                </span>
+              </td>
+              <td><strong>{{ d.different_books }}</strong></td>
+              <td><strong>{{ d.total_copies }}</strong></td>
+              <td><span class="text-emerald font-bold">{{ d.available_copies }}</span></td>
+              <td><span class="text-amber font-bold">{{ d.issued_copies }}</span></td>
+              <td>
+                <div class="flex-gap">
+                  <div class="dept-progress-bar" style="width: 80px; margin-top: 0;">
+                    <div class="dept-progress-fill" style="width: {{ d.circulation_rate }}%;"></div>
+                  </div>
+                  <span class="text-xs font-mono">{{ d.circulation_rate }}%</span>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td><strong>Total Library Catalog</strong></td>
+            <td><strong>{{ stats.distinct_books }}</strong></td>
+            <td><strong>{{ stats.total_copies }}</strong></td>
+            <td><strong class="text-emerald">{{ stats.available_copies }}</strong></td>
+            <td><strong class="text-amber">{{ stats.issued_copies }}</strong></td>
+            <td><strong>{{ round((stats.issued_copies / stats.total_copies * 100), 1) if stats.total_copies > 0 else 0 }}%</strong></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Split Grid: Category Breakdown & Overdue Fines Tracking -->
+<div class="dashboard-split-grid">
+  <!-- Category Distribution Table -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Category Distribution</h3>
+      <p class="card-subtitle">Inventory breakdown by subject genre</p>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Category</th>
+              <th>Distinct Titles</th>
+              <th>Total Copies</th>
+              <th>Available</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in cat_summary %}
+              <tr>
+                <td><strong>{{ c.name }}</strong></td>
+                <td>{{ c.count }}</td>
+                <td>{{ c.total_copies }}</td>
+                <td><span class="badge {{ 'badge-success' if c.available_copies > 0 else 'badge-danger' }}">{{ c.available_copies }}</span></td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overdue Loans & Fine Accruals -->
+  <div class="card">
+    <div class="card-header flex-between">
+      <div>
+        <h3 class="card-title">Overdue Fines Tracking</h3>
+        <p class="card-subtitle">Active transactions past their due date</p>
+      </div>
+      <span class="badge badge-danger">Total: ₹{{ stats.total_fines }}</span>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Book Title</th>
+              <th>Patron</th>
+              <th>Due Date</th>
+              <th>Overdue Days</th>
+              <th>Fine</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if overdue_loans %}
+              {% for o in overdue_loans %}
+                <tr>
+                  <td>
+                    <div class="table-cell-title">{{ o.book_title }}</div>
+                  </td>
+                  <td>
+                    <div class="table-cell-title">{{ o.user_name }}</div>
+                    <div class="table-cell-subtitle font-mono text-xs">{{ o.user_student_id or '' }}</div>
+                  </td>
+                  <td class="font-mono text-sm">{{ o.due_date }}</td>
+                  <td><span class="badge badge-danger">{{ o.overdue_days }} days</span></td>
+                  <td class="font-mono font-bold text-rose">₹{{ o.current_fine }}</td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="5" class="text-center text-muted" style="padding: 2rem;">
+                  ✅ No patrons currently have overdue book loans.
+                </td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

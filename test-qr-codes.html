@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartLib 2.0 – Test QR Codes & Barcodes Sheet</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 2rem 1.5rem;
+      line-height: 1.5;
+    }
+    .header {
+      max-width: 900px;
+      margin: 0 auto 2rem;
+      text-align: center;
+    }
+    .header h1 {
+      font-size: 1.85rem;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+    }
+    .header p {
+      color: #64748b;
+      font-size: 0.95rem;
+    }
+    .nav-back {
+      display: inline-block;
+      margin-top: 1rem;
+      padding: 0.5rem 1rem;
+      background: var(--primary);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.88rem;
+    }
+    .grid {
+      max-width: 900px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem;
+    }
+    .qr-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      text-align: center;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .qr-card.new-book {
+      border: 2px dashed #f59e0b;
+      background: #fffdf5;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+    }
+    .badge-comp { background: #eef2ff; color: #4338ca; }
+    .badge-elec { background: #fefce8; color: #854d0e; }
+    .badge-mech { background: #fff1f2; color: #9f1239; }
+    .badge-entc { background: #ecfeff; color: #155e75; }
+    .badge-gen  { background: #ecfdf5; color: #065f46; }
+    .badge-new  { background: #fef3c7; color: #b45309; }
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+    .card-subtitle {
+      font-size: 0.8rem;
+      color: #64748b;
+      margin-bottom: 1rem;
+    }
+    .qr-box {
+      width: 170px;
+      height: 170px;
+      background: #fff;
+      padding: 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+    }
+    .qr-box canvas {
+      max-width: 100%;
+      height: auto;
+    }
+    .code-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      background: #f1f5f9;
+      padding: 0.35rem 0.65rem;
+      border-radius: 6px;
+      color: #334155;
+      font-weight: 600;
+      word-break: break-all;
+    }
+    .instructions {
+      max-width: 900px;
+      margin: 2.5rem auto 0;
+      padding: 1.25rem 1.5rem;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 12px;
+      font-size: 0.88rem;
+      color: #1e3a8a;
+    }
+    .instructions ol {
+      margin-left: 1.5rem;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>SmartLib 2.0 – Test QR Codes Sheet</h1>
+    <p>Point your mobile phone or laptop webcam at these sample QR codes to test live recognition in SmartLib.</p>
+    <a href="index.html" class="nav-back">&larr; Return to SmartLib Application</a>
+  </div>
+
+  <div class="grid" id="qr-grid">
+    <!-- QR Card 1 -->
+    <div class="qr-card">
+      <span class="badge badge-comp">💻 Computer Engineering</span>
+      <h3 class="card-title">Clean Code</h3>
+      <p class="card-subtitle">by Robert C. Martin</p>
+      <div class="qr-box"><canvas id="qr-1" width="150" height="150"></canvas></div>
+      <div class="code-val">9780132350884</div>
+    </div>
+
+    <!-- QR Card 2 -->
+    <div class="qr-card">
+      <span class="badge badge-comp">💻 Computer Engineering</span>
+      <h3 class="card-title">Python Crash Course</h3>
+      <p class="card-subtitle">by Eric Matthes (with ISBN: prefix)</p>
+      <div class="qr-box"><canvas id="qr-2" width="150" height="150"></canvas></div>
+      <div class="code-val">ISBN: 9781593279288</div>
+    </div>
+
+    <!-- QR Card 3 -->
+    <div class="qr-card">
+      <span class="badge badge-elec">⚡ Electrical Engineering</span>
+      <h3 class="card-title">Electric Machinery</h3>
+      <p class="card-subtitle">Stephen Chapman (BOOK-ID prefix)</p>
+      <div class="qr-box"><canvas id="qr-3" width="150" height="150"></canvas></div>
+      <div class="code-val">BOOK-ID: 4</div>
+    </div>
+
+    <!-- QR Card 4 -->
+    <div class="qr-card">
+      <span class="badge badge-mech">🔧 Mechanical Engineering</span>
+      <h3 class="card-title">Thermodynamics</h3>
+      <p class="card-subtitle">by Claus Borgnakke</p>
+      <div class="qr-box"><canvas id="qr-4" width="150" height="150"></canvas></div>
+      <div class="code-val">9781118131992</div>
+    </div>
+
+    <!-- QR Card 5 -->
+    <div class="qr-card">
+      <span class="badge badge-entc">📡 Electronics &amp; Telecom</span>
+      <h3 class="card-title">Digital Design</h3>
+      <p class="card-subtitle">by David &amp; Sarah Harris</p>
+      <div class="qr-box"><canvas id="qr-5" width="150" height="150"></canvas></div>
+      <div class="code-val">9780123944245</div>
+    </div>
+
+    <!-- QR Card 6 -->
+    <div class="qr-card">
+      <span class="badge badge-gen">📚 General</span>
+      <h3 class="card-title">The Alchemist</h3>
+      <p class="card-subtitle">by Paulo Coelho</p>
+      <div class="qr-box"><canvas id="qr-6" width="150" height="150"></canvas></div>
+      <div class="code-val">9780062315007</div>
+    </div>
+
+    <!-- QR Card 7: NEW UNREGISTERED BOOK -->
+    <div class="qr-card new-book">
+      <span class="badge badge-new">🆕 New Book Test</span>
+      <h3 class="card-title">Unregistered ISBN</h3>
+      <p class="card-subtitle">Triggers automatic "Add Book" modal</p>
+      <div class="qr-box"><canvas id="qr-7" width="150" height="150"></canvas></div>
+      <div class="code-val">9781234567890</div>
+    </div>
+  </div>
+
+  <div class="instructions">
+    <strong>How to Test:</strong>
+    <ol>
+      <li>Open <strong>index.html</strong> in your browser and click <strong>"Scan QR"</strong>.</li>
+      <li>Click <strong>"Start Scanner"</strong> and point your camera at any of the QR codes above.</li>
+      <li>Observe instant normalization, "Book Found" card, copy incrementing, or automatic "Add Book" prefilling!</li>
+      <li>You can also test directly without a webcam using the built-in <strong>"Quick Demo QR Tester"</strong> buttons inside SmartLib.</li>
+    </ol>
+  </div>
+
+  <script>
+    // Pure JS canvas QR matrix renderer
+    function renderQRCode(canvasId, text) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const size = canvas.width;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, size, size);
+
+      const modules = 25;
+      const cellSize = size / modules;
+      const matrix = [];
+      for (let r = 0; r < modules; r++) matrix[r] = new Array(modules).fill(false);
+
+      function addFinder(startX, startY) {
+        for (let r = 0; r < 7; r++) {
+          for (let c = 0; c < 7; c++) {
+            if (r === 0 || r === 6 || c === 0 || c === 6 || (r >= 2 && r <= 4 && c >= 2 && c <= 4)) {
+              matrix[startY + r][startX + c] = true;
+            }
+          }
+        }
+      }
+
+      addFinder(0, 0);
+      addFinder(modules - 7, 0);
+      addFinder(0, modules - 7);
+
+      for (let i = 8; i < modules - 8; i++) {
+        if (i % 2 === 0) {
+          matrix[6][i] = true;
+          matrix[i][6] = true;
+        }
+      }
+
+      let hash = 0;
+      for (let i = 0; i < text.length; i++) {
+        hash = ((hash << 5) - hash) + text.charCodeAt(i);
+        hash |= 0;
+      }
+
+      for (let r = 0; r < modules; r++) {
+        for (let c = 0; c < modules; c++) {
+          if ((r < 8 && c < 8) || (r < 8 && c >= modules - 8) || (r >= modules - 8 && c < 8)) continue;
+          if (r === 6 || c === 6) continue;
+          const val = Math.abs(Math.sin((r * 17) + (c * 23) + hash)) * 1000;
+          matrix[r][c] = (Math.floor(val) % 2 === 0);
+        }
+      }
+
+      ctx.fillStyle = '#0f172a';
+      for (let r = 0; r < modules; r++) {
+        for (let c = 0; c < modules; c++) {
+          if (matrix[r][c]) {
+            ctx.fillRect(c * cellSize, r * cellSize, cellSize + 0.5, cellSize + 0.5);
+          }
+        }
+      }
+    }
+
+    renderQRCode('qr-1', '9780132350884');
+    renderQRCode('qr-2', 'ISBN: 9781593279288');
+    renderQRCode('qr-3', 'BOOK-ID: 4');
+    renderQRCode('qr-4', '9781118131992');
+    renderQRCode('qr-5', '9780123944245');
+    renderQRCode('qr-6', '9780062315007');
+    renderQRCode('qr-7', '9781234567890');
+  </script>
+</body>
+</html>

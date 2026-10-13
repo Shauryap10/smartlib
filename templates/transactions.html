@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}Transactions – SmartLib Admin{% endblock %}
+{% block page_title %}🔄 Circulation &amp; Loan Transactions{% endblock %}
+{% block page_subtitle %}Issue books, process returns, track due dates, and monitor overdue fines{% endblock %}
+
+{% block content %}
+<div class="view-header-bar flex-between">
+  <div>
+    <h2 class="view-heading">Circulation Desk</h2>
+  </div>
+  <button type="button" class="btn btn-primary" onclick="openIssueBookModal()">
+    🔄 Issue Book to Patron
+  </button>
+</div>
+
+<!-- Filter Tabs -->
+<div class="tabs-container">
+  <a href="{{ url_for('transactions.transactions_list', status='all') }}" class="tab-btn {% if active_tab == 'all' %}active{% endif %}" style="text-decoration: none;">
+    All Transactions
+  </a>
+  <a href="{{ url_for('transactions.transactions_list', status='issued') }}" class="tab-btn {% if active_tab == 'issued' %}active{% endif %}" style="text-decoration: none;">
+    Active Loans
+  </a>
+  <a href="{{ url_for('transactions.transactions_list', status='returned') }}" class="tab-btn {% if active_tab == 'returned' %}active{% endif %}" style="text-decoration: none;">
+    Returned
+  </a>
+</div>
+
+<!-- Transactions Table -->
+<div class="card">
+  <div class="card-header flex-between">
+    <span class="count-badge">Showing {{ transactions|length }} records</span>
+    <span class="text-muted text-xs">Standard loan duration: 14 days • Overdue rate: ₹5/day</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Tx ID</th>
+            <th>Book Title</th>
+            <th>Patron / Student</th>
+            <th>Issue Date</th>
+            <th>Due Date</th>
+            <th>Return Date</th>
+            <th>Fine</th>
+            <th>Status</th>
+            <th class="text-right">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if transactions %}
+            {% for tx in transactions %}
+              <tr>
+                <td class="font-mono text-xs">#TX-{{ tx.id }}</td>
+                <td>
+                  <div class="table-cell-title">{{ tx.book_title }}</div>
+                  <div class="table-cell-subtitle font-mono text-xs">ISBN: {{ tx.book_isbn }}</div>
+                </td>
+                <td>
+                  <div class="table-cell-title">{{ tx.user_name }}</div>
+                  <div class="table-cell-subtitle font-mono text-xs">{{ tx.user_student_id or tx.user_email }}</div>
+                </td>
+                <td class="font-mono text-sm">{{ tx.issue_date }}</td>
+                <td class="font-mono text-sm {{ 'text-rose font-bold' if tx.is_overdue else '' }}">{{ tx.due_date }}</td>
+                <td class="font-mono text-sm">{{ tx.return_date or '—' }}</td>
+                <td class="font-mono {{ 'text-rose font-bold' if tx.current_fine > 0 else '' }}">₹{{ tx.current_fine }}</td>
+                <td>
+                  {% if tx.status == 'issued' %}
+                    {% if tx.is_overdue %}
+                      <span class="badge badge-danger">Overdue ({{ tx.overdue_days }}d)</span>
+                    {% else %}
+                      <span class="badge badge-warning">Active Loan</span>
+                    {% endif %}
+                  {% else %}
+                    <span class="badge badge-success">Returned</span>
+                  {% endif %}
+                </td>
+                <td class="text-right">
+                  {% if tx.status == 'issued' %}
+                    <button type="button" class="btn btn-outline-primary btn-xs" onclick="returnBookAjax({{ tx.id }}, '{{ tx.book_title|replace('\'', '\\\'') }}', {{ tx.current_fine }})">
+                      ↩️ Return
+                    </button>
+                  {% else %}
+                    <span class="text-muted text-xs">Completed</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="9" class="text-center text-muted" style="padding: 2.5rem;">
+                No transaction records found in this view.
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Issue Book to Patron -->
+<div class="modal-backdrop" id="issue-book-modal">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3 class="modal-title">🔄 Issue Book to Patron</h3>
+      <button type="button" class="modal-close-btn" onclick="closeIssueBookModal()">&times;</button>
+    </div>
+    <form id="issue-book-form" onsubmit="submitIssueBook(event)">
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="issue-book-select">Select Book (Shows Available Stock) <span class="required">*</span></label>
+          <select id="issue-book-select" name="book_id" class="form-select" required>
+            <option value="">-- Choose Book --</option>
+            {% for b in books %}
+              <option value="{{ b.id }}" {% if b.available_copies <= 0 %}disabled{% endif %}>
+                {{ b.title }} [{{ b.department_name }}] — ({{ b.available_copies }} of {{ b.total_copies }} available)
+                {% if b.available_copies <= 0 %}[OUT OF STOCK]{% endif %}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="issue-user-select">Select Active Patron / Student <span class="required">*</span></label>
+          <select id="issue-user-select" name="user_id" class="form-select" required>
+            <option value="">-- Choose Patron --</option>
+            {% for u in users %}
+              <option value="{{ u.id }}">
+                {{ u.full_name }} ({{ u.student_id or u.email }} • {{ u.department_name }})
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-6">
+            <label for="issue-date">Issue Date <span class="required">*</span></label>
+            <input type="date" id="issue-date" name="issue_date" class="form-control" required>
+          </div>
+          <div class="form-group col-6">
+            <label for="due-date">Due Date <span class="required">*</span></label>
+            <input type="date" id="due-date" name="due_date" class="form-control" required>
+            <span class="form-help">Default duration: 14 days</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeIssueBookModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Confirm Issue</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openIssueBookModal() {
+  const today = new Date();
+  const dueDate = new Date();
+  dueDate.setDate(today.getDate() + 14);
+
+  document.getElementById('issue-date').value = today.toISOString().split('T')[0];
+  document.getElementById('due-date').value = dueDate.toISOString().split('T')[0];
+  document.getElementById('issue-book-modal').classList.add('open');
+}
+
+function closeIssueBookModal() {
+  document.getElementById('issue-book-modal').classList.remove('open');
+}
+
+function submitIssueBook(e) {
+  e.preventDefault();
+  const form = document.getElementById('issue-book-form');
+  const payload = {
+    book_id: form.book_id.value,
+    user_id: form.user_id.value,
+    issue_date: form.issue_date.value,
+    due_date: form.due_date.value
+  };
+
+  fetch('/api/transactions/issue', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      showToast(res.message, 'success');
+      closeIssueBookModal();
+      setTimeout(() => location.reload(), 600);
+    } else {
+      showToast(res.message, 'danger');
+    }
+  })
+  .catch(() => showToast("Error issuing book.", 'danger'));
+}
+
+function returnBookAjax(txId, title, fine) {
+  let msg = `Confirm return of "${title}"?`;
+  if (fine > 0) {
+    msg += `\n\n⚠️ Note: Book is overdue. Fine calculated: ₹${fine}.`;
+  }
+
+  if (confirm(msg)) {
+    fetch(`/api/transactions/return/${txId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (res.success) {
+        showToast(res.message, 'success');
+        setTimeout(() => location.reload(), 600);
+      } else {
+        showToast(res.message, 'danger');
+      }
+    })
+    .catch(() => showToast("Error returning book.", 'danger'));
+  }
+}
+</script>
+{% endblock %}

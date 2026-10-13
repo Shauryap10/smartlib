@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Registration – SmartLib System</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    .auth-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+      padding: 2rem 1rem;
+    }
+    .auth-card {
+      width: 100%;
+      max-width: 540px;
+      background: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .auth-header {
+      background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+      color: #ffffff;
+      padding: 2rem 2rem 1.75rem;
+      text-align: center;
+    }
+    .auth-logo {
+      width: 52px;
+      height: 52px;
+      margin: 0 auto 0.5rem;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    .auth-title {
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.25rem;
+    }
+    .auth-subtitle {
+      font-size: 0.85rem;
+      color: #e0e7ff;
+    }
+    .auth-body {
+      padding: 2rem;
+    }
+    .auth-footer {
+      padding: 1.25rem 2rem;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      text-align: center;
+      font-size: 0.88rem;
+    }
+  </style>
+</head>
+<body class="auth-page">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="auth-logo">🎓</div>
+      <h1 class="auth-title">Student Registration</h1>
+      <p class="auth-subtitle">Create your SmartLib library patron account</p>
+    </div>
+
+    <div class="auth-body">
+      <!-- Flash Messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category if category != 'error' else 'danger' }} mb-3">
+              <span class="alert-icon">
+                {% if category == 'success' %}✅
+                {% elif category == 'danger' %}🚫
+                {% elif category == 'warning' %}⚠️
+                {% else %}ℹ️{% endif %}
+              </span>
+              <div class="alert-body">{{ message }}</div>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" action="{{ url_for('auth.register') }}">
+        <div class="form-row">
+          <div class="form-group col-6">
+            <label for="full_name">Full Name <span class="required">*</span></label>
+            <input type="text" id="full_name" name="full_name" class="form-control" 
+                   value="{{ form.full_name if form else '' }}" placeholder="e.g. Aarav Sharma" required>
+          </div>
+
+          <div class="form-group col-6">
+            <label for="student_id">Student ID / Roll No <span class="required">*</span></label>
+            <input type="text" id="student_id" name="student_id" class="form-control font-mono" 
+                   value="{{ form.student_id if form else '' }}" placeholder="e.g. STU-105" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-6">
+            <label for="email">Email Address <span class="required">*</span></label>
+            <input type="email" id="email" name="email" class="form-control" 
+                   value="{{ form.email if form else '' }}" placeholder="student@smartlib.edu" required>
+          </div>
+
+          <div class="form-group col-6">
+            <label for="mobile">Mobile Number</label>
+            <input type="text" id="mobile" name="mobile" class="form-control" 
+                   value="{{ form.mobile if form else '' }}" placeholder="+91 98765 43210">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="department_id">Academic Department <span class="required">*</span></label>
+          <select id="department_id" name="department_id" class="form-select" required>
+            <option value="">-- Choose Your Department --</option>
+            {% for d in departments %}
+              <option value="{{ d.id }}" {% if form and form.department_id == d.id|string %}selected{% endif %}>
+                {{ d.name }} ({{ d.code }})
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-6">
+            <label for="password">Password <span class="required">*</span></label>
+            <input type="password" id="password" name="password" class="form-control" 
+                   placeholder="At least 6 characters" minlength="6" required>
+          </div>
+
+          <div class="form-group col-6">
+            <label for="confirm_password">Confirm Password <span class="required">*</span></label>
+            <input type="password" id="confirm_password" name="confirm_password" class="form-control" 
+                   placeholder="Re-type password" minlength="6" required>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block mt-3" style="padding: 0.75rem; font-size: 1rem;">
+          Register Account &rarr;
+        </button>
+      </form>
+    </div>
+
+    <div class="auth-footer">
+      Already registered? <a href="{{ url_for('auth.login') }}" class="text-indigo" style="font-weight: 700; text-decoration: none;">Sign In here &rarr;</a>
+    </div>
+  </div>
+</body>
+</html>

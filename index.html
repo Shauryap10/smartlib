@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SmartLib – Smart Library Management System</title>
+  <meta name="description" content="Modern Smart Library Management System with QR Book Scanner and Department-Wise Compartments">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- HTML5 QR Code Scanner CDN -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-box">
+          <span class="logo-icon">📚</span>
+          <div class="logo-text">
+            <h2>SmartLib</h2>
+            <span class="version-badge">v2.0 • QR & Depts</span>
+          </div>
+        </div>
+        <button class="mobile-close-btn" id="sidebar-close-btn" aria-label="Close Sidebar">&times;</button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <ul class="nav-list">
+          <li class="nav-item">
+            <a href="#dashboard" class="nav-link active" data-view="dashboard" id="nav-dashboard">
+              <span class="nav-icon">🏠</span>
+              <span class="nav-label">Dashboard</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#books" class="nav-link" data-view="books" id="nav-books">
+              <span class="nav-icon">📚</span>
+              <span class="nav-label">Books</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#scan-qr" class="nav-link" data-view="scan-qr" id="nav-scan-qr">
+              <span class="nav-icon">📷</span>
+              <span class="nav-label">Scan QR</span>
+              <span class="nav-tag new-tag">New</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#departments" class="nav-link" data-view="departments" id="nav-departments">
+              <span class="nav-icon">🗂️</span>
+              <span class="nav-label">Departments</span>
+              <span class="nav-tag depts-tag">5 Depts</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#members" class="nav-link" data-view="members" id="nav-members">
+              <span class="nav-icon">👥</span>
+              <span class="nav-label">Members</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#transactions" class="nav-link" data-view="transactions" id="nav-transactions">
+              <span class="nav-icon">🔄</span>
+              <span class="nav-label">Transactions</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="#reports" class="nav-link" data-view="reports" id="nav-reports">
+              <span class="nav-icon">📊</span>
+              <span class="nav-label">Reports</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="storage-indicator">
+          <div class="storage-dot"></div>
+          <div class="storage-info">
+            <span class="storage-title">Storage Mode</span>
+            <span class="storage-key">smartlib_final_v1</span>
+          </div>
+        </div>
+        <button class="btn btn-outline-danger btn-sm btn-block" id="btn-reset-demo" title="Restore default books, departments & demo records">
+          🔄 Reset Demo
+        </button>
+      </div>
+    </aside>
+
+    <!-- Sidebar Overlay for mobile -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- Main Content Area -->
+    <main class="main-wrapper">
+      <!-- Top Header Navbar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="mobile-toggle-btn" id="mobile-toggle-btn" aria-label="Toggle Navigation">
+            <span class="hamburger-bar"></span>
+            <span class="hamburger-bar"></span>
+            <span class="hamburger-bar"></span>
+          </button>
+          <div class="page-title-box">
+            <h1 class="page-title" id="page-title">Dashboard</h1>
+            <span class="page-subtitle" id="page-subtitle">Smart Library Management & Analytics</span>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          <div class="topbar-search">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="global-search-input" placeholder="Search books, ISBN, members..." autocomplete="off">
+            <button class="clear-search-btn" id="clear-global-search" style="display: none;">&times;</button>
+          </div>
+          <button class="btn btn-primary" id="topbar-btn-scan" title="Open QR Scanner">
+            <span class="btn-icon">📷</span> Scan QR
+          </button>
+          <button class="btn btn-secondary" id="topbar-btn-add-book" title="Add a new book">
+            <span class="btn-icon">+</span> Add Book
+          </button>
+        </div>
+      </header>
+
+      <!-- App Views Container -->
+      <div class="content-body">
+
+        <!-- ============================================== -->
+        <!-- VIEW 1: DASHBOARD                              -->
+        <!-- ============================================== -->
+        <section class="app-view active" id="view-dashboard">
+          <!-- Metric Statistics Cards -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon-wrapper bg-indigo-light">
+                <span class="stat-icon">📚</span>
+              </div>
+              <div class="stat-details">
+                <span class="stat-label">Total Books</span>
+                <span class="stat-value" id="stat-total-books">0</span>
+                <span class="stat-subtext" id="stat-distinct-titles">0 titles</span>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon-wrapper bg-blue-light">
+                <span class="stat-icon">📦</span>
+              </div>
+              <div class="stat-details">
+                <span class="stat-label">Total Copies</span>
+                <span class="stat-value" id="stat-total-copies">0</span>
+                <span class="stat-subtext">In library catalog</span>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon-wrapper bg-emerald-light">
+                <span class="stat-icon">✅</span>
+              </div>
+              <div class="stat-details">
+                <span class="stat-label">Available Copies</span>
+                <span class="stat-value text-emerald" id="stat-available-copies">0</span>
+                <span class="stat-subtext">Ready for checkout</span>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon-wrapper bg-amber-light">
+                <span class="stat-icon">📖</span>
+              </div>
+              <div class="stat-details">
+                <span class="stat-label">Issued Books</span>
+                <span class="stat-value text-amber" id="stat-issued-books">0</span>
+                <span class="stat-subtext">Currently on loan</span>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon-wrapper bg-purple-light">
+                <span class="stat-icon">👥</span>
+              </div>
+              <div class="stat-details">
+                <span class="stat-label">Members</span>
+                <span class="stat-value" id="stat-total-members">0</span>
+                <span class="stat-subtext">Registered patrons</span>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon-wrapper bg-rose-light">
+                <span class="stat-icon">💰</span>
+              </div>
+              <div class="stat-details">
+                <span class="stat-label">Fine</span>
+                <span class="stat-value text-rose" id="stat-total-fine">₹0</span>
+                <span class="stat-subtext" id="stat-overdue-count">0 overdue books</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Action Buttons Banner -->
+          <div class="dashboard-banner">
+            <div class="banner-content">
+              <h3>SmartLib Quick Actions</h3>
+              <p>Scan a book QR code to instantly verify stock, increase copies, or issue to patrons.</p>
+            </div>
+            <div class="banner-buttons">
+              <button class="btn btn-white" id="dash-btn-scan">
+                📷 Open QR Scanner
+              </button>
+              <button class="btn btn-outline-white" id="dash-btn-add-book">
+                + Add Book
+              </button>
+              <button class="btn btn-outline-white" id="dash-btn-issue">
+                🔄 Issue Book
+              </button>
+            </div>
+          </div>
+
+          <!-- Department Overview Section -->
+          <div class="card dashboard-section">
+            <div class="card-header flex-between">
+              <div>
+                <h3 class="card-title">Department Overview</h3>
+                <p class="card-subtitle">Real-time book copies distribution across academic departments</p>
+              </div>
+              <button class="btn btn-ghost btn-sm" id="dash-btn-view-departments">
+                View All Compartments 🗂️ &rarr;
+              </button>
+            </div>
+            <div class="card-body">
+              <div class="dept-overview-grid" id="dashboard-dept-overview-grid">
+                <!-- Dynamically populated department cards -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Transactions & Overdue Loans -->
+          <div class="dashboard-split-grid">
+            <div class="card">
+              <div class="card-header flex-between">
+                <div>
+                  <h3 class="card-title">Active Loans & Transactions</h3>
+                  <p class="card-subtitle">Latest issued books and return statuses</p>
+                </div>
+                <button class="btn btn-ghost btn-sm" id="dash-btn-view-transactions">
+                  View All &rarr;
+                </button>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Book</th>
+                        <th>Member</th>
+                        <th>Due Date</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody id="dashboard-recent-transactions-table">
+                      <!-- Rendered by JS -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Library Health & Compartments</h3>
+                <p class="card-subtitle">Department stock status highlights</p>
+              </div>
+              <div class="card-body">
+                <div class="health-summary-list" id="dashboard-health-summary">
+                  <!-- Rendered dynamically -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ============================================== -->
+        <!-- VIEW 2: BOOKS                                  -->
+        <!-- ============================================== -->
+        <section class="app-view" id="view-books">
+          <div class="view-header-bar flex-between">
+            <div>
+              <h2 class="view-heading">Books Catalog</h2>
+              <p class="view-subheading">Manage your complete inventory, department allocation, and stock levels</p>
+            </div>
+            <div class="header-action-group">
+              <button class="btn btn-primary" id="books-btn-scan">
+                📷 Scan QR
+              </button>
+              <button class="btn btn-success" id="books-btn-add">
+                + Add Book
+              </button>
+            </div>
+          </div>
+
+          <!-- Search & Multi-Filter Bar -->
+          <div class="card filter-card">
+            <div class="filter-grid">
+              <div class="filter-group">
+                <label for="filter-book-search">Search Book</label>
+                <div class="input-with-icon">
+                  <span class="field-icon">🔍</span>
+                  <input type="text" id="filter-book-search" placeholder="Title, author, or ISBN...">
+                </div>
+              </div>
+
+              <div class="filter-group">
+                <label for="filter-department">Department ▼</label>
+                <select id="filter-department" class="form-select">
+                  <option value="All">All Departments</option>
+                  <option value="Computer Engineering">💻 Computer Engineering</option>
+                  <option value="Electrical Engineering">⚡ Electrical Engineering</option>
+                  <option value="Mechanical Engineering">🔧 Mechanical Engineering</option>
+                  <option value="Electronics & Telecommunication">📡 Electronics & Telecommunication</option>
+                  <option value="General">📚 General</option>
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <label for="filter-category">Category ▼</label>
+                <select id="filter-category" class="form-select">
+                  <option value="All">All Categories</option>
+                  <!-- Dynamically populated from database -->
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <label for="filter-availability">Availability ▼</label>
+                <select id="filter-availability" class="form-select">
+                  <option value="All">All</option>
+                  <option value="Available">Available</option>
+                  <option value="Issued">Issued</option>
+                  <option value="Out of Stock">Out of Stock</option>
+                </select>
+              </div>
+
+              <div class="filter-action-group">
+                <button class="btn btn-ghost btn-sm" id="btn-clear-book-filters" title="Reset all search filters">
+                  ✕ Reset Filters
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Books Table Card -->
+          <div class="card">
+            <div class="card-header flex-between">
+              <div class="table-meta">
+                <span class="count-badge" id="books-count-badge">Showing 0 books</span>
+              </div>
+              <div class="table-actions">
+                <span class="text-muted text-sm">Click "Scan QR" to search or auto-add copies</span>
+              </div>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="data-table" id="books-table">
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Author</th>
+                      <th>Category</th>
+                      <th>Department</th>
+                      <th>ISBN</th>
+                      <th>Copies (Avail / Total)</th>
+                      <th>Status</th>
+                      <th class="text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="books-table-body">
+                    <!-- Books Rendered by JavaScript -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ============================================== -->
+        <!-- VIEW 3: SCAN QR                                -->
+        <!-- ============================================== -->
+        <section class="app-view" id="view-scan-qr">
+          <div class="view-header-bar flex-between">
+            <div>
+              <h2 class="view-heading">📷 Scan Book QR</h2>
+              <p class="view-subheading">Point your camera at the book QR code to detect ISBN, add copies, or register new books.</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="qr-view-books-btn">
+              📚 View Catalog
+            </button>
+          </div>
+
+          <!-- Scanner Grid -->
+          <div class="qr-scanner-layout">
+            <!-- Left Column: Camera Scanner Container -->
+            <div class="card qr-camera-card">
+              <div class="card-header flex-between">
+                <div>
+                  <h3 class="card-title">Live Camera Scanner</h3>
+                  <span class="text-muted text-xs">Supports Mobile Rear Camera & Webcam</span>
+                </div>
+                <div class="camera-status-pill" id="camera-status-pill">
+                  <span class="pulse-indicator"></span>
+                  <span id="camera-status-text">Scanner Idle</span>
+                </div>
+              </div>
+
+              <div class="card-body">
+                <!-- Camera view area -->
+                <div class="qr-viewport-wrapper">
+                  <div id="qr-reader" class="qr-reader-container"></div>
+                  <div class="scanner-laser" id="scanner-laser" style="display: none;"></div>
+                  
+                  <!-- Fallback Placeholder when camera is not running -->
+                  <div class="scanner-placeholder" id="scanner-placeholder">
+                    <div class="scanner-target-box">
+                      <div class="target-corner tl"></div>
+                      <div class="target-corner tr"></div>
+                      <div class="target-corner bl"></div>
+                      <div class="target-corner br"></div>
+                      <span class="scanner-center-icon">📷</span>
+                    </div>
+                    <p class="scanner-prompt-text">Click "Start Scanner" to begin scanning book barcodes / QR codes.</p>
+                    <span class="text-muted text-xs">We automatically use rear camera on mobile phones</span>
+                  </div>
+                </div>
+
+                <!-- Camera Controls -->
+                <div class="scanner-controls">
+                  <button class="btn btn-primary" id="btn-start-scanner">
+                    ▶️ Start Scanner
+                  </button>
+                  <button class="btn btn-outline-danger" id="btn-stop-scanner" disabled>
+                    ⏹️ Stop Scanner
+                  </button>
+                </div>
+
+                <!-- Camera Permission / Error Alert -->
+                <div class="alert alert-warning" id="camera-permission-alert" style="display: none;">
+                  <span class="alert-icon">⚠️</span>
+                  <div class="alert-body">
+                    <strong id="camera-alert-title">Camera Permission Required</strong>
+                    <p id="camera-alert-msg">Camera permission is required to scan QR codes. Please allow access in browser settings, or use the manual ISBN entry below.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Column: Scan Result & Manual Fallback -->
+            <div class="qr-side-panels">
+              <!-- Result Display Card -->
+              <div class="card result-card" id="scan-result-container">
+                <div class="card-header">
+                  <h3 class="card-title" id="scan-result-title">Scan Result</h3>
+                  <span class="text-muted text-xs" id="scan-result-meta">Waiting for QR scan...</span>
+                </div>
+                <div class="card-body" id="scan-result-body">
+                  <div class="empty-result-state" id="empty-scan-state">
+                    <span class="empty-icon">🎯</span>
+                    <p>No QR code scanned yet.</p>
+                    <span class="text-muted text-xs">Align QR code inside camera frame or test with sample buttons below.</span>
+                  </div>
+                  <!-- Dynamically rendered book result card -->
+                </div>
+              </div>
+
+              <!-- Manual ISBN Entry Fallback -->
+              <div class="card manual-isbn-card">
+                <div class="card-header">
+                  <h3 class="card-title">Manual ISBN Entry</h3>
+                  <p class="card-subtitle">Cannot use camera? Search or register by ISBN or Book ID</p>
+                </div>
+                <div class="card-body">
+                  <form id="manual-isbn-form" class="manual-isbn-form">
+                    <div class="form-group mb-2">
+                      <label for="manual-isbn-input">Enter ISBN or Book ID:</label>
+                      <div class="input-with-button">
+                        <input type="text" id="manual-isbn-input" placeholder="e.g. 9780132350884 or BOOK-ID: 3" autocomplete="off" required>
+                        <button type="submit" class="btn btn-indigo" id="btn-search-isbn">
+                          Search Book
+                        </button>
+                      </div>
+                    </div>
+                    <span class="text-muted text-xs">Accepts standard ISBN-10, ISBN-13, or ID format with/without prefixes</span>
+                  </form>
+                </div>
+              </div>
+
+              <!-- Quick Demo Testing Simulator -->
+              <div class="card demo-simulator-card">
+                <div class="card-header">
+                  <h3 class="card-title">Quick Demo QR Tester</h3>
+                  <span class="text-muted text-xs">Test instant QR recognition without camera</span>
+                </div>
+                <div class="card-body">
+                  <div class="quick-test-badges">
+                    <button class="test-pill" data-test-qr="9780132350884" title="Scan Clean Code (Computer Eng.)">
+                      💻 Clean Code (9780132350884)
+                    </button>
+                    <button class="test-pill" data-test-qr="ISBN: 9781593279288" title="Scan Python Crash Course with prefix">
+                      💻 ISBN: 9781593279288
+                    </button>
+                    <button class="test-pill" data-test-qr="BOOK-ID: 4" title="Scan Electric Machinery by Book ID">
+                      ⚡ BOOK-ID: 4
+                    </button>
+                    <button class="test-pill" data-test-qr="9780062315007" title="Scan The Alchemist (General)">
+                      📚 The Alchemist (9780062315007)
+                    </button>
+                    <button class="test-pill test-pill-new" data-test-qr="9781234567890" title="Simulate a New/Unregistered Book">
+                      🆕 New Book (9781234567890)
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ============================================== -->
+        <!-- VIEW 4: DEPARTMENTS                            -->
+        <!-- ============================================== -->
+        <section class="app-view" id="view-departments">
+          <div class="view-header-bar flex-between">
+            <div>
+              <h2 class="view-heading">🗂️ Department Compartments</h2>
+              <p class="view-subheading">Explore books separated into academic compartments with dynamic copy metrics</p>
+            </div>
+            <button class="btn btn-primary btn-sm" id="depts-btn-add-book">
+              + Add Book to Department
+            </button>
+          </div>
+
+          <!-- 5 Department Summary Cards -->
+          <div class="dept-cards-grid" id="department-summary-cards">
+            <!-- Dynamically populated 5 department cards -->
+          </div>
+
+          <!-- Department Compartment Shelves Header -->
+          <div class="compartments-shelf-header">
+            <h3>Department Book Shelves & Compartments</h3>
+            <p>Physical shelf allocation and inventory breakdown per department</p>
+          </div>
+
+          <!-- Compartment Shelves Container -->
+          <div class="department-shelves-container" id="department-shelves-container">
+            <!-- 5 distinct department compartments dynamically rendered from localStorage -->
+          </div>
+        </section>
+
+
+        <!-- ============================================== -->
+        <!-- VIEW 5: MEMBERS                                -->
+        <!-- ============================================== -->
+        <section class="app-view" id="view-members">
+          <div class="view-header-bar flex-between">
+            <div>
+              <h2 class="view-heading">👥 Members Directory</h2>
+              <p class="view-subheading">Manage library patrons, faculty, and student memberships</p>
+            </div>
+            <button class="btn btn-primary" id="btn-add-member">
+              + Add Member
+            </button>
+          </div>
+
+          <!-- Member Filter & Search -->
+          <div class="card filter-card">
+            <div class="filter-grid members-filter-grid">
+              <div class="filter-group">
+                <label for="filter-member-search">Search Member</label>
+                <div class="input-with-icon">
+                  <span class="field-icon">🔍</span>
+                  <input type="text" id="filter-member-search" placeholder="Name, code, email, or phone...">
+                </div>
+              </div>
+              <div class="filter-group">
+                <label for="filter-member-role">Membership Role</label>
+                <select id="filter-member-role" class="form-select">
+                  <option value="All">All Roles</option>
+                  <option value="Student">Student</option>
+                  <option value="Faculty">Faculty</option>
+                  <option value="Staff">Staff</option>
+                </select>
+              </div>
+              <div class="filter-action-group">
+                <button class="btn btn-ghost btn-sm" id="btn-clear-member-filters">
+                  ✕ Clear
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Members Table -->
+          <div class="card">
+            <div class="card-header flex-between">
+              <span class="count-badge" id="members-count-badge">Showing 0 members</span>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="data-table" id="members-table">
+                  <thead>
+                    <tr>
+                      <th>Member ID</th>
+                      <th>Full Name</th>
+                      <th>Contact Email</th>
+                      <th>Phone</th>
+                      <th>Role</th>
+                      <th>Active Loans</th>
+                      <th class="text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="members-table-body">
+                    <!-- Rendered by JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ============================================== -->
+        <!-- VIEW 6: TRANSACTIONS                           -->
+        <!-- ============================================== -->
+        <section class="app-view" id="view-transactions">
+          <div class="view-header-bar flex-between">
+            <div>
+              <h2 class="view-heading">🔄 Loan Transactions</h2>
+              <p class="view-subheading">Issue books, process returns, track due dates, and monitor overdue fines</p>
+            </div>
+            <button class="btn btn-primary" id="btn-open-issue-modal">
+              🔄 Issue Book
+            </button>
+          </div>
+
+          <!-- Filter Tabs -->
+          <div class="tabs-container">
+            <button class="tab-btn active" data-tx-filter="all">All Transactions</button>
+            <button class="tab-btn" data-tx-filter="issued">Active Loans</button>
+            <button class="tab-btn" data-tx-filter="overdue">Overdue Loans</button>
+            <button class="tab-btn" data-tx-filter="returned">Returned</button>
+          </div>
+
+          <!-- Transactions Table -->
+          <div class="card">
+            <div class="card-header flex-between">
+              <span class="count-badge" id="transactions-count-badge">Showing 0 transactions</span>
+              <span class="text-muted text-xs">Standard loan period: 14 days • Overdue rate: ₹5/day</span>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="data-table" id="transactions-table">
+                  <thead>
+                    <tr>
+                      <th>Tx ID</th>
+                      <th>Book Title & Dept</th>
+                      <th>Member</th>
+                      <th>Issue Date</th>
+                      <th>Due Date</th>
+                      <th>Return Date</th>
+                      <th>Fine</th>
+                      <th>Status</th>
+                      <th class="text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="transactions-table-body">
+                    <!-- Rendered by JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ============================================== -->
+        <!-- VIEW 7: REPORTS                                -->
+        <!-- ============================================== -->
+        <section class="app-view" id="view-reports">
+          <div class="view-header-bar flex-between">
+            <div>
+              <h2 class="view-heading">📊 Library Reports & Analytics</h2>
+              <p class="view-subheading">Departmental audits, inventory metrics, circulation statistics, and fine collections</p>
+            </div>
+            <button class="btn btn-outline-primary btn-sm" id="btn-print-reports" onclick="window.print()">
+              🖨️ Print Report
+            </button>
+          </div>
+
+          <!-- Department-wise Reports Section -->
+          <div class="card mb-4">
+            <div class="card-header flex-between">
+              <div>
+                <h3 class="card-title">Department-Wise Book Inventory Report</h3>
+                <p class="card-subtitle">Complete copy breakdown, circulation, and availability metrics per academic department</p>
+              </div>
+              <span class="badge badge-indigo">Dynamic Audit</span>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Department</th>
+                      <th>Different Books</th>
+                      <th>Total Copies</th>
+                      <th>Available Copies</th>
+                      <th>Issued Copies</th>
+                      <th>Circulation Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody id="department-reports-table-body">
+                    <!-- Rendered dynamically -->
+                  </tbody>
+                  <tfoot id="department-reports-table-footer">
+                    <!-- Totals rendered dynamically -->
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Additional Breakdowns: Category & Overdue -->
+          <div class="dashboard-split-grid">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Category Distribution</h3>
+                <p class="card-subtitle">Books grouped by subject category</p>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Category</th>
+                        <th>Distinct Titles</th>
+                        <th>Total Copies</th>
+                        <th>Available</th>
+                      </tr>
+                    </thead>
+                    <tbody id="category-reports-table-body">
+                      <!-- Rendered by JS -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Overdue Fines Summary</h3>
+                <p class="card-subtitle">Active transactions that have passed their due date</p>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Book</th>
+                        <th>Member</th>
+                        <th>Due Date</th>
+                        <th>Overdue Days</th>
+                        <th>Calculated Fine</th>
+                      </tr>
+                    </thead>
+                    <tbody id="overdue-reports-table-body">
+                      <!-- Rendered by JS -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div><!-- End content-body -->
+    </main>
+  </div><!-- End app-container -->
+
+
+  <!-- ============================================== -->
+  <!-- MODAL: ADD / EDIT BOOK                         -->
+  <!-- ============================================== -->
+  <div class="modal-backdrop" id="book-modal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <div class="modal-title-box">
+          <h3 class="modal-title" id="book-modal-title">Add New Book</h3>
+          <span class="text-muted text-xs" id="book-modal-subtitle">Register a book into SmartLib catalog</span>
+        </div>
+        <div class="modal-header-actions">
+          <button class="btn btn-outline-indigo btn-xs" id="modal-btn-scan-qr" title="Scan QR to autofill ISBN">
+            📷 Scan QR
+          </button>
+          <button class="modal-close-btn" id="book-modal-close">&times;</button>
+        </div>
+      </div>
+      
+      <form id="book-form">
+        <input type="hidden" id="book-form-id">
+        <div class="modal-body">
+          <!-- Duplicate ISBN Warning Banner -->
+          <div class="alert alert-warning" id="duplicate-isbn-banner" style="display: none;">
+            <span class="alert-icon">⚠️</span>
+            <div class="alert-body">
+              <strong>Book with this ISBN already exists!</strong>
+              <p id="duplicate-isbn-text">An existing record was found. You can add more copies instead of creating a duplicate row.</p>
+              <div class="mt-2 flex-gap">
+                <button type="button" class="btn btn-sm btn-indigo" id="btn-add-copy-from-banner">
+                  + Add 1 Copy to Existing
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="book-input-title">Book Title <span class="required">*</span></label>
+            <input type="text" id="book-input-title" class="form-control" placeholder="e.g. Clean Code" required>
+          </div>
+
+          <div class="form-group">
+            <label for="book-input-author">Author <span class="required">*</span></label>
+            <input type="text" id="book-input-author" class="form-control" placeholder="e.g. Robert C. Martin" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label for="book-input-isbn">ISBN <span class="required">*</span></label>
+              <div class="input-with-button">
+                <input type="text" id="book-input-isbn" class="form-control font-mono" placeholder="e.g. 9780132350884" required>
+              </div>
+              <span class="form-help">Unique 10 or 13 digit number</span>
+            </div>
+
+            <div class="form-group col-6">
+              <label for="book-input-category">Category <span class="required">*</span></label>
+              <input type="text" id="book-input-category" class="form-control" placeholder="e.g. Technology, Engineering" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label for="book-input-department">Department <span class="required">*</span></label>
+              <select id="book-input-department" class="form-select" required>
+                <option value="Computer Engineering">💻 Computer Engineering</option>
+                <option value="Electrical Engineering">⚡ Electrical Engineering</option>
+                <option value="Mechanical Engineering">🔧 Mechanical Engineering</option>
+                <option value="Electronics & Telecommunication">📡 Electronics & Telecommunication</option>
+                <option value="General">📚 General</option>
+              </select>
+            </div>
+
+            <div class="form-group col-6">
+              <label for="book-input-copies">Total Copies <span class="required">*</span></label>
+              <input type="number" id="book-input-copies" class="form-control" min="1" value="1" required>
+              <span class="form-help" id="book-copies-help">Minimum 1 copy</span>
+            </div>
+          </div>
+
+          <!-- Edit validation error banner -->
+          <div class="alert alert-danger" id="book-edit-error" style="display: none;">
+            <span class="alert-icon">🚫</span>
+            <div class="alert-body" id="book-edit-error-msg"></div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="book-modal-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="book-modal-save">Save Book</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ============================================== -->
+  <!-- MODAL: ADD MULTIPLE COPIES                     -->
+  <!-- ============================================== -->
+  <div class="modal-backdrop" id="add-copies-modal">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-header">
+        <h3 class="modal-title">Add Book Copies</h3>
+        <button class="modal-close-btn" id="add-copies-close">&times;</button>
+      </div>
+      <form id="add-copies-form">
+        <input type="hidden" id="add-copies-book-id">
+        <div class="modal-body">
+          <p class="text-sm mb-3">Add additional physical copies to <strong id="add-copies-book-title">Clean Code</strong>.</p>
+          <div class="form-group">
+            <label for="add-copies-count">Number of Copies to Add:</label>
+            <input type="number" id="add-copies-count" class="form-control" min="1" value="1" required>
+          </div>
+          <div class="stat-calc-preview">
+            <span>Existing Copies: <strong id="add-copies-existing">2</strong></span>
+            <span>&rarr;</span>
+            <span>New Total: <strong id="add-copies-new-total" class="text-indigo">3</strong></span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="add-copies-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="add-copies-submit">Confirm Add</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ============================================== -->
+  <!-- MODAL: ADD / EDIT MEMBER                       -->
+  <!-- ============================================== -->
+  <div class="modal-backdrop" id="member-modal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title" id="member-modal-title">Add Library Member</h3>
+        <button class="modal-close-btn" id="member-modal-close">&times;</button>
+      </div>
+      <form id="member-form">
+        <input type="hidden" id="member-form-id">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label for="member-input-code">Member ID / Code <span class="required">*</span></label>
+              <input type="text" id="member-input-code" class="form-control font-mono" placeholder="e.g. MEM-106" required>
+            </div>
+            <div class="form-group col-6">
+              <label for="member-input-role">Role <span class="required">*</span></label>
+              <select id="member-input-role" class="form-select" required>
+                <option value="Student">Student</option>
+                <option value="Faculty">Faculty</option>
+                <option value="Staff">Staff</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="member-input-name">Full Name <span class="required">*</span></label>
+            <input type="text" id="member-input-name" class="form-control" placeholder="e.g. Aarav Sharma" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label for="member-input-email">Email <span class="required">*</span></label>
+              <input type="email" id="member-input-email" class="form-control" placeholder="e.g. aarav@smartlib.edu" required>
+            </div>
+            <div class="form-group col-6">
+              <label for="member-input-phone">Phone</label>
+              <input type="text" id="member-input-phone" class="form-control" placeholder="e.g. +91 98765 43210">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="member-modal-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Member</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ============================================== -->
+  <!-- MODAL: ISSUE BOOK                              -->
+  <!-- ============================================== -->
+  <div class="modal-backdrop" id="issue-modal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">🔄 Issue Book to Member</h3>
+        <button class="modal-close-btn" id="issue-modal-close">&times;</button>
+      </div>
+      <form id="issue-form">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="issue-select-book">Select Book <span class="required">*</span></label>
+            <select id="issue-select-book" class="form-select" required>
+              <option value="">-- Choose Book (Shows Available Copies) --</option>
+            </select>
+            <span class="form-help" id="issue-book-info"></span>
+          </div>
+
+          <div class="form-group">
+            <label for="issue-select-member">Select Member <span class="required">*</span></label>
+            <select id="issue-select-member" class="form-select" required>
+              <option value="">-- Choose Member --</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-6">
+              <label for="issue-input-date">Issue Date <span class="required">*</span></label>
+              <input type="date" id="issue-input-date" class="form-control" required>
+            </div>
+            <div class="form-group col-6">
+              <label for="issue-input-due">Due Date <span class="required">*</span></label>
+              <input type="date" id="issue-input-due" class="form-control" required>
+              <span class="form-help">Default loan: 14 days</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="issue-modal-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="issue-submit-btn">Confirm Issue</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ============================================== -->
+  <!-- MODAL: BOOK QR CODE VIEWER                     -->
+  <!-- ============================================== -->
+  <div class="modal-backdrop" id="qr-display-modal">
+    <div class="modal-dialog modal-sm text-center">
+      <div class="modal-header">
+        <h3 class="modal-title">Book QR Code</h3>
+        <button class="modal-close-btn" id="qr-display-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <h4 id="qr-display-book-title" class="mb-1">Clean Code</h4>
+        <p id="qr-display-book-author" class="text-sm text-muted mb-3">Robert C. Martin</p>
+        
+        <div class="qr-canvas-box" id="qr-canvas-box">
+          <!-- Canvas / SVG rendered by app.js -->
+        </div>
+        
+        <div class="qr-code-meta mt-3">
+          <span class="font-mono text-sm" id="qr-display-isbn">ISBN: 9780132350884</span>
+        </div>
+        <p class="text-xs text-muted mt-2">You can scan this directly with another phone or webcam to test the scanner!</p>
+      </div>
+      <div class="modal-footer justify-center">
+        <button type="button" class="btn btn-secondary btn-sm" id="qr-display-done">Close</button>
+        <button type="button" class="btn btn-indigo btn-sm" id="qr-display-print" onclick="window.print()">Print</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Entry Point -->
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Student Dashboard – SmartLib{% endblock %}
+{% block page_title %}Welcome, {{ user.full_name }}{% endblock %}
+{% block page_subtitle %}{{ user.department_name }} • Student ID: {{ user.student_id }}{% endblock %}
+
+{% block content %}
+<!-- Student Statistics Grid -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon-wrapper bg-emerald-light">
+      <span class="stat-icon">📚</span>
+    </div>
+    <div class="stat-details">
+      <span class="stat-label">Books Available</span>
+      <span class="stat-value text-emerald">{{ stats.available_books }}</span>
+      <span class="stat-subtext">Ready in catalog</span>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon-wrapper bg-indigo-light">
+      <span class="stat-icon">📖</span>
+    </div>
+    <div class="stat-details">
+      <span class="stat-label">My Issued Books</span>
+      <span class="stat-value text-indigo">{{ stats.my_issued }}</span>
+      <span class="stat-subtext">Currently borrowed</span>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon-wrapper bg-amber-light">
+      <span class="stat-icon">⏰</span>
+    </div>
+    <div class="stat-details">
+      <span class="stat-label">Due Soon</span>
+      <span class="stat-value text-amber">{{ stats.due_soon }}</span>
+      <span class="stat-subtext">Due within 3 days</span>
+    </div>
+  </div>
+
+  <div class="stat-card">
+    <div class="stat-icon-wrapper bg-rose-light">
+      <span class="stat-icon">⚠️</span>
+    </div>
+    <div class="stat-details">
+      <span class="stat-label">Overdue</span>
+      <span class="stat-value text-rose">{{ stats.overdue }}</span>
+      <span class="stat-subtext">Requires return</span>
+    </div>
+  </div>
+</div>
+
+<!-- Student Action Banner -->
+<div class="dashboard-banner">
+  <div class="banner-content">
+    <h3>Discover Books in SmartLib</h3>
+    <p>Search engineering titles, scan QR codes on shelves, and track your borrowed books and return dates.</p>
+  </div>
+  <div class="banner-buttons">
+    <a href="{{ url_for('user.books') }}" class="btn btn-white">
+      📚 Browse Catalog
+    </a>
+    <a href="{{ url_for('user.scan_qr') }}" class="btn btn-outline-white">
+      📷 Scan Book QR
+    </a>
+  </div>
+</div>
+
+<!-- My Current Books (Active Loans) Section -->
+<div class="card mb-4">
+  <div class="card-header flex-between">
+    <div>
+      <h3 class="card-title">📖 My Current Books</h3>
+      <p class="card-subtitle">Books you currently have checked out from the library</p>
+    </div>
+    <span class="badge badge-indigo">{{ current_loans|length }} Active</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Book Title</th>
+            <th>Department</th>
+            <th>Issue Date</th>
+            <th>Due Date</th>
+            <th>Status</th>
+            <th>Fine</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if current_loans %}
+            {% for loan in current_loans %}
+              <tr>
+                <td>
+                  <div class="table-cell-title">{{ loan.book_title }}</div>
+                  <div class="table-cell-subtitle font-mono text-xs">ISBN: {{ loan.book_isbn }}</div>
+                </td>
+                <td><span class="badge badge-muted">{{ loan.department_name }}</span></td>
+                <td class="font-mono text-sm">{{ loan.issue_date }}</td>
+                <td class="font-mono text-sm {{ 'text-rose font-bold' if loan.is_overdue else '' }}">{{ loan.due_date }}</td>
+                <td>
+                  {% if loan.is_overdue %}
+                    <span class="badge badge-danger">Overdue ({{ loan.overdue_days }} days)</span>
+                  {% else %}
+                    <span class="badge badge-warning">On Loan</span>
+                  {% endif %}
+                </td>
+                <td class="font-mono {{ 'text-rose font-bold' if loan.current_fine > 0 else '' }}">
+                  ₹{{ loan.current_fine }}
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="6" class="text-center text-muted" style="padding: 2.5rem;">
+                <span style="font-size: 2rem; display: block; margin-bottom: 0.5rem;">📗</span>
+                You have no books currently checked out. Visit the catalog to explore available books!
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- My Transaction History Section -->
+<div class="card">
+  <div class="card-header flex-between">
+    <div>
+      <h3 class="card-title">📜 My Borrowing History</h3>
+      <p class="card-subtitle">Previously returned books and loan records</p>
+    </div>
+    <span class="badge badge-muted">{{ loan_history|length }} Past Loans</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Book Title</th>
+            <th>Issue Date</th>
+            <th>Due Date</th>
+            <th>Return Date</th>
+            <th>Status</th>
+            <th>Fine Paid</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if loan_history %}
+            {% for tx in loan_history %}
+              <tr>
+                <td>
+                  <div class="table-cell-title">{{ tx.book_title }}</div>
+                  <div class="table-cell-subtitle font-mono text-xs">ISBN: {{ tx.book_isbn }}</div>
+                </td>
+                <td class="font-mono text-sm">{{ tx.issue_date }}</td>
+                <td class="font-mono text-sm">{{ tx.due_date }}</td>
+                <td class="font-mono text-sm">{{ tx.return_date }}</td>
+                <td><span class="badge badge-success">Returned</span></td>
+                <td class="font-mono">₹{{ tx.fine_amount }}</td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="6" class="text-center text-muted" style="padding: 2rem;">No past transaction history yet.</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}SmartLib – Smart Library Management System{% endblock %}</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- HTML5 QR Code Scanner CDN -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  
+  <!-- Custom Design System Stylesheet -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-box">
+          <span class="logo-icon">📚</span>
+          <div class="logo-text">
+            <h2>SmartLib</h2>
+            <span class="version-badge">
+              {% if current_user and current_user.role == 'librarian' %}
+                Admin • Librarian
+              {% else %}
+                Student Portal
+              {% endif %}
+            </span>
+          </div>
+        </div>
+        <button class="mobile-close-btn" id="sidebar-close-btn" aria-label="Close Sidebar">&times;</button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <ul class="nav-list">
+          {% if current_user and current_user.role == 'librarian' %}
+            <!-- LIBRARIAN / ADMIN NAVIGATION -->
+            <li class="nav-item">
+              <a href="{{ url_for('admin.dashboard') }}" class="nav-link {% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">Dashboard</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url_for('books.books_list') }}" class="nav-link {% if request.endpoint == 'books.books_list' %}active{% endif %}">
+                <span class="nav-icon">📚</span>
+                <span class="nav-label">Books</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url_for('books.scan_qr') }}" class="nav-link {% if request.endpoint == 'books.scan_qr' %}active{% endif %}">
+                <span class="nav-icon">📷</span>
+                <span class="nav-label">Scan QR</span>
+                <span class="nav-tag new-tag">Scanner</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url_for('books.departments') }}" class="nav-link {% if request.endpoint == 'books.departments' %}active{% endif %}">
+                <span class="nav-icon">🗂️</span>
+                <span class="nav-label">Departments</span>
+                <span class="nav-tag depts-tag">5 Depts</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url_for('admin.users') }}" class="nav-link {% if request.endpoint == 'admin.users' %}active{% endif %}">
+                <span class="nav-icon">👥</span>
+                <span class="nav-label">Users / Members</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url_for('transactions.transactions_list') }}" class="nav-link {% if request.endpoint == 'transactions.transactions_list' %}active{% endif %}">
+                <span class="nav-icon">🔄</span>
+                <span class="nav-label">Transactions</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url_for('admin.reports') }}" class="nav-link {% if request.endpoint == 'admin.reports' %}active{% endif %}">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">Reports</span>
+              </a>
+            </li>
+          {% else %}
+            <!-- USER / STUDENT NAVIGATION -->
+            <li class="nav-item">
+              <a href="{{ url_for('user.dashboard') }}" class="nav-link {% if request.endpoint == 'user.dashboard' %}active{% endif %}">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">My Dashboard</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url_for('user.books') }}" class="nav-link {% if request.endpoint == 'user.books' %}active{% endif %}">
+                <span class="nav-icon">📚</span>
+                <span class="nav-label">Browse Books</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url_for('user.scan_qr') }}" class="nav-link {% if request.endpoint == 'user.scan_qr' %}active{% endif %}">
+                <span class="nav-icon">📷</span>
+                <span class="nav-label">Scan QR</span>
+                <span class="nav-tag new-tag">Search</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url_for('books.departments') }}" class="nav-link {% if request.endpoint == 'books.departments' %}active{% endif %}">
+                <span class="nav-icon">🗂️</span>
+                <span class="nav-label">Departments</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="{{ url_for('user.profile') }}" class="nav-link {% if request.endpoint == 'user.profile' %}active{% endif %}">
+                <span class="nav-icon">👤</span>
+                <span class="nav-label">My Profile</span>
+              </a>
+            </li>
+          {% endif %}
+        </ul>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-profile-badge">
+          <div class="user-avatar">
+            {% if current_user and current_user.role == 'librarian' %}👨‍💼{% else %}🎓{% endif %}
+          </div>
+          <div class="user-meta">
+            <span class="user-name">{{ current_user.full_name if current_user else 'Patron' }}</span>
+            <span class="user-role">
+              {% if current_user and current_user.role == 'librarian' %}
+                Librarian / Admin
+              {% else %}
+                Student ({{ current_user.student_id if current_user else '' }})
+              {% endif %}
+            </span>
+          </div>
+        </div>
+        <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger btn-sm btn-block" title="Log out from SmartLib">
+          🚪 Logout
+        </a>
+      </div>
+    </aside>
+
+    <!-- Sidebar Overlay for mobile -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- Main Content Area -->
+    <main class="main-wrapper">
+      <!-- Topbar Header -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="mobile-toggle-btn" id="mobile-toggle-btn" aria-label="Toggle Navigation">
+            <span class="hamburger-bar"></span>
+            <span class="hamburger-bar"></span>
+            <span class="hamburger-bar"></span>
+          </button>
+          <div class="page-title-box">
+            <h1 class="page-title">{% block page_title %}SmartLib{% endblock %}</h1>
+            <span class="page-subtitle">{% block page_subtitle %}Smart Library Management System{% endblock %}</span>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          {% if current_user and current_user.role == 'librarian' %}
+            <a href="{{ url_for('books.scan_qr') }}" class="btn btn-primary btn-sm">
+              <span class="btn-icon">📷</span> Scan QR
+            </a>
+            <a href="{{ url_for('books.books_list') }}" class="btn btn-secondary btn-sm">
+              <span class="btn-icon">+</span> Manage Books
+            </a>
+          {% else %}
+            <a href="{{ url_for('user.scan_qr') }}" class="btn btn-primary btn-sm">
+              <span class="btn-icon">📷</span> Quick Scan
+            </a>
+            <a href="{{ url_for('user.books') }}" class="btn btn-secondary btn-sm">
+              <span class="btn-icon">🔍</span> Search Catalog
+            </a>
+          {% endif %}
+        </div>
+      </header>
+
+      <!-- App Body Content -->
+      <div class="content-body">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-messages-box">
+              {% for category, message in messages %}
+                <div class="alert alert-{{ category if category != 'error' else 'danger' }}">
+                  <span class="alert-icon">
+                    {% if category == 'success' %}✅
+                    {% elif category == 'danger' %}🚫
+                    {% elif category == 'warning' %}⚠️
+                    {% else %}ℹ️{% endif %}
+                  </span>
+                  <div class="alert-body">{{ message }}</div>
+                  <button type="button" class="alert-close-btn" onclick="this.parentElement.remove()">&times;</button>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
+
+  <!-- Global Application Scripts -->
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

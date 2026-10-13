@@ -1,0 +1,483 @@
+{% extends "base.html" %}
+
+{% block title %}Books Management – SmartLib Admin{% endblock %}
+{% block page_title %}Books Catalog & Inventory{% endblock %}
+{% block page_subtitle %}Manage physical book stock, department allocations, and copies{% endblock %}
+
+{% block content %}
+<div class="view-header-bar flex-between">
+  <div>
+    <h2 class="view-heading">Catalog Management</h2>
+  </div>
+  <div class="header-action-group">
+    <a href="{{ url_for('books.scan_qr') }}" class="btn btn-primary">
+      📷 Scan QR
+    </a>
+    <button type="button" class="btn btn-success" onclick="openAddBookModal()">
+      + Add Book
+    </button>
+  </div>
+</div>
+
+<!-- Multi-Filter & Search Bar -->
+<div class="card filter-card">
+  <form method="GET" action="{{ url_for('books.books_list') }}" class="filter-grid" id="books-filter-form">
+    <div class="filter-group">
+      <label for="search">Search Book</label>
+      <div class="input-with-icon">
+        <span class="field-icon">🔍</span>
+        <input type="text" id="search" name="search" value="{{ search_query or '' }}" placeholder="Title, author, or ISBN...">
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <label for="department_id">Department ▼</label>
+      <select id="department_id" name="department_id" class="form-select" onchange="this.form.submit()">
+        <option value="All">All Departments</option>
+        {% for d in departments %}
+          <option value="{{ d.id }}" {% if selected_dept == d.id|string %}selected{% endif %}>
+            {{ d.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="category_id">Category ▼</label>
+      <select id="category_id" name="category_id" class="form-select" onchange="this.form.submit()">
+        <option value="All">All Categories</option>
+        {% for c in categories %}
+          <option value="{{ c.id }}" {% if selected_cat == c.id|string %}selected{% endif %}>
+            {{ c.name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label for="availability">Availability ▼</label>
+      <select id="availability" name="availability" class="form-select" onchange="this.form.submit()">
+        <option value="All" {% if selected_avail == 'All' %}selected{% endif %}>All</option>
+        <option value="Available" {% if selected_avail == 'Available' %}selected{% endif %}>Available</option>
+        <option value="Issued" {% if selected_avail == 'Issued' %}selected{% endif %}>Issued</option>
+        <option value="Out of Stock" {% if selected_avail == 'Out of Stock' %}selected{% endif %}>Out of Stock</option>
+      </select>
+    </div>
+
+    <div class="filter-action-group">
+      <a href="{{ url_for('books.books_list') }}" class="btn btn-ghost btn-sm" title="Reset all search filters">
+        ✕ Clear
+      </a>
+    </div>
+  </form>
+</div>
+
+<!-- Books Table Card -->
+<div class="card">
+  <div class="card-header flex-between">
+    <span class="count-badge">Showing {{ books|length }} books in inventory</span>
+    <span class="text-muted text-xs">Total Copies across catalog update dynamically in SQLite</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="data-table" id="books-table">
+        <thead>
+          <tr>
+            <th>Book Name</th>
+            <th>Author</th>
+            <th>Department</th>
+            <th>Category</th>
+            <th>ISBN</th>
+            <th>Total Copies</th>
+            <th>Available Copies</th>
+            <th>Status</th>
+            <th class="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if books %}
+            {% for b in books %}
+              <tr>
+                <td>
+                  <div class="table-cell-title">{{ b.title }}</div>
+                </td>
+                <td>{{ b.author }}</td>
+                <td>
+                  <span class="badge badge-dept-{{ b.department_code|lower }}">
+                    {{ b.department_name }}
+                  </span>
+                </td>
+                <td><span class="badge badge-muted">{{ b.category_name or 'General' }}</span></td>
+                <td class="font-mono text-sm">{{ b.isbn }}</td>
+                <td><strong>{{ b.total_copies }}</strong></td>
+                <td>
+                  <strong class="{{ 'text-emerald' if b.available_copies > 0 else 'text-rose' }}">{{ b.available_copies }}</strong>
+                </td>
+                <td>
+                  {% if b.available_copies > 0 %}
+                    <span class="badge badge-success">In Stock</span>
+                  {% else %}
+                    <span class="badge badge-danger">Out of Stock</span>
+                  {% endif %}
+                </td>
+                <td class="text-right">
+                  <div class="flex-gap" style="justify-content: flex-end;">
+                    <button type="button" class="btn btn-outline-primary btn-xs" onclick="openAddCopyModal({{ b.id }}, '{{ b.title|replace('\'', '\\\'') }}', {{ b.total_copies }})" title="Add copies">
+                      + Copy
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-xs" onclick="openEditBookModal({{ b.id }}, '{{ b.title|replace('\'', '\\\'') }}', '{{ b.author|replace('\'', '\\\'') }}', '{{ b.isbn }}', {{ b.category_id or 1 }}, {{ b.department_id or 1 }}, {{ b.total_copies }}, {{ b.issued_copies }})" title="Edit book details">
+                      ✏️ Edit
+                    </button>
+                    <button type="button" class="btn btn-outline-danger btn-xs" onclick="deleteBookAjax({{ b.id }}, '{{ b.title|replace('\'', '\\\'') }}')" title="Delete book">
+                      🗑️
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="9" class="text-center text-muted" style="padding: 3rem;">
+                <span style="font-size: 2rem; display: block; margin-bottom: 0.5rem;">🔍</span>
+                No books found matching your current filter criteria.
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Add New Book -->
+<div class="modal-backdrop" id="add-book-modal">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <div class="modal-title-box">
+        <h3 class="modal-title">Add New Book</h3>
+        <span class="text-muted text-xs">Register inventory in database</span>
+      </div>
+      <div class="modal-header-actions">
+        <a href="{{ url_for('books.scan_qr') }}" class="btn btn-outline-indigo btn-xs">
+          📷 Scan QR
+        </a>
+        <button type="button" class="modal-close-btn" onclick="closeAddBookModal()">&times;</button>
+      </div>
+    </div>
+    <form id="add-book-form" onsubmit="submitAddBook(event)">
+      <div class="modal-body">
+        <!-- Duplicate Warning Alert -->
+        <div class="alert alert-warning" id="duplicate-warning-banner" style="display: none;">
+          <span class="alert-icon">⚠️</span>
+          <div class="alert-body" id="duplicate-warning-msg"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="book-title">Book Title <span class="required">*</span></label>
+          <input type="text" id="book-title" name="title" class="form-control" placeholder="e.g. Clean Code" required>
+        </div>
+
+        <div class="form-group">
+          <label for="book-author">Author <span class="required">*</span></label>
+          <input type="text" id="book-author" name="author" class="form-control" placeholder="e.g. Robert C. Martin" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-6">
+            <label for="book-isbn">ISBN <span class="required">*</span></label>
+            <input type="text" id="book-isbn" name="isbn" class="form-control font-mono" placeholder="9780132350884" oninput="checkISBNDuplicate(this.value)" required>
+          </div>
+          <div class="form-group col-6">
+            <label for="book-category">Category <span class="required">*</span></label>
+            <select id="book-category" name="category_id" class="form-select" required>
+              {% for c in categories %}
+                <option value="{{ c.id }}">{{ c.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-6">
+            <label for="book-department">Department <span class="required">*</span></label>
+            <select id="book-department" name="department_id" class="form-select" required>
+              {% for d in departments %}
+                <option value="{{ d.id }}">{{ d.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group col-6">
+            <label for="book-copies">Total Copies <span class="required">*</span></label>
+            <input type="number" id="book-copies" name="total_copies" class="form-control" min="1" value="1" required>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeAddBookModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="btn-save-book">Save Book</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Edit Book -->
+<div class="modal-backdrop" id="edit-book-modal">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3 class="modal-title">Edit Book Information</h3>
+      <button type="button" class="modal-close-btn" onclick="closeEditBookModal()">&times;</button>
+    </div>
+    <form id="edit-book-form" onsubmit="submitEditBook(event)">
+      <input type="hidden" id="edit-book-id" name="book_id">
+      <input type="hidden" id="edit-issued-copies" name="issued_copies">
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="edit-book-title">Book Title <span class="required">*</span></label>
+          <input type="text" id="edit-book-title" name="title" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-book-author">Author <span class="required">*</span></label>
+          <input type="text" id="edit-book-author" name="author" class="form-control" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-6">
+            <label for="edit-book-isbn">ISBN <span class="required">*</span></label>
+            <input type="text" id="edit-book-isbn" name="isbn" class="form-control font-mono" required>
+          </div>
+          <div class="form-group col-6">
+            <label for="edit-book-category">Category <span class="required">*</span></label>
+            <select id="edit-book-category" name="category_id" class="form-select" required>
+              {% for c in categories %}
+                <option value="{{ c.id }}">{{ c.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group col-6">
+            <label for="edit-book-department">Department <span class="required">*</span></label>
+            <select id="edit-book-department" name="department_id" class="form-select" required>
+              {% for d in departments %}
+                <option value="{{ d.id }}">{{ d.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group col-6">
+            <label for="edit-book-copies">Total Copies <span class="required">*</span></label>
+            <input type="number" id="edit-book-copies" name="total_copies" class="form-control" min="1" required>
+            <span class="form-help" id="edit-copies-help"></span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeEditBookModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Update Book</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Add Copy -->
+<div class="modal-backdrop" id="add-copy-modal">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-header">
+      <h3 class="modal-title">Add Copies</h3>
+      <button type="button" class="modal-close-btn" onclick="closeAddCopyModal()">&times;</button>
+    </div>
+    <form id="add-copy-form" onsubmit="submitAddCopy(event)">
+      <input type="hidden" id="add-copy-book-id">
+      <div class="modal-body">
+        <p class="text-sm mb-3">Add copies to: <strong id="add-copy-title"></strong></p>
+        <div class="form-group">
+          <label for="add-copy-count">Number of Copies to Add:</label>
+          <input type="number" id="add-copy-count" class="form-control" min="1" value="1" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeAddCopyModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Confirm Add</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openAddBookModal(prefill = {}) {
+  document.getElementById('add-book-form').reset();
+  if (prefill.isbn) document.getElementById('book-isbn').value = prefill.isbn;
+  if (prefill.title) document.getElementById('book-title').value = prefill.title;
+  if (prefill.author) document.getElementById('book-author').value = prefill.author;
+  document.getElementById('duplicate-warning-banner').style.display = 'none';
+  document.getElementById('add-book-modal').classList.add('open');
+}
+
+function closeAddBookModal() {
+  document.getElementById('add-book-modal').classList.remove('open');
+}
+
+function openEditBookModal(id, title, author, isbn, catId, deptId, totalCopies, issuedCopies) {
+  document.getElementById('edit-book-id').value = id;
+  document.getElementById('edit-issued-copies').value = issuedCopies;
+  document.getElementById('edit-book-title').value = title;
+  document.getElementById('edit-book-author').value = author;
+  document.getElementById('edit-book-isbn').value = isbn;
+  document.getElementById('edit-book-category').value = catId;
+  document.getElementById('edit-book-department').value = deptId;
+  document.getElementById('edit-book-copies').value = totalCopies;
+  document.getElementById('edit-book-copies').min = issuedCopies;
+  document.getElementById('edit-copies-help').textContent = `Currently issued: ${issuedCopies}. Copies cannot be less than ${issuedCopies}.`;
+  document.getElementById('edit-book-modal').classList.add('open');
+}
+
+function closeEditBookModal() {
+  document.getElementById('edit-book-modal').classList.remove('open');
+}
+
+function openAddCopyModal(id, title, currentTotal) {
+  document.getElementById('add-copy-book-id').value = id;
+  document.getElementById('add-copy-title').textContent = title;
+  document.getElementById('add-copy-count').value = 1;
+  document.getElementById('add-copy-modal').classList.add('open');
+}
+
+function closeAddCopyModal() {
+  document.getElementById('add-copy-modal').classList.remove('open');
+}
+
+function checkISBNDuplicate(isbn) {
+  if (!isbn || isbn.length < 8) {
+    document.getElementById('duplicate-warning-banner').style.display = 'none';
+    return;
+  }
+  fetch(`/api/books/check-isbn/${encodeURIComponent(isbn.trim())}`)
+    .then(r => r.json())
+    .then(data => {
+      const banner = document.getElementById('duplicate-warning-banner');
+      if (data.exists) {
+        banner.style.display = 'flex';
+        document.getElementById('duplicate-warning-msg').innerHTML = 
+          `Book with this ISBN already exists: <strong>${data.book.title}</strong> (${data.book.total_copies} copies). ` +
+          `<a href="javascript:void(0)" onclick="closeAddBookModal(); openAddCopyModal(${data.book.id}, '${data.book.title.replace(/'/g, "\\'")}', ${data.book.total_copies})" class="text-indigo font-bold">Click here to add copies instead.</a>`;
+      } else {
+        banner.style.display = 'none';
+      }
+    });
+}
+
+function submitAddBook(e) {
+  e.preventDefault();
+  const form = document.getElementById('add-book-form');
+  const payload = {
+    title: form.title.value,
+    author: form.author.value,
+    isbn: form.isbn.value,
+    category_id: form.category_id.value,
+    department_id: form.department_id.value,
+    total_copies: form.total_copies.value
+  };
+
+  fetch('/api/books/add', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      showToast(res.message, 'success');
+      closeAddBookModal();
+      setTimeout(() => location.reload(), 600);
+    } else {
+      showToast(res.message, 'danger');
+    }
+  })
+  .catch(() => showToast("Error saving book to database.", 'danger'));
+}
+
+function submitEditBook(e) {
+  e.preventDefault();
+  const form = document.getElementById('edit-book-form');
+  const bookId = form.book_id.value;
+  const issued = parseInt(form.issued_copies.value, 10);
+  const total = parseInt(form.total_copies.value, 10);
+
+  if (total < issued) {
+    alert(`Copies cannot be less than currently issued copies (Currently issued: ${issued}).`);
+    return;
+  }
+
+  const payload = {
+    title: form.title.value,
+    author: form.author.value,
+    isbn: form.isbn.value,
+    category_id: form.category_id.value,
+    department_id: form.department_id.value,
+    total_copies: form.total_copies.value
+  };
+
+  fetch(`/api/books/edit/${bookId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      showToast(res.message, 'success');
+      closeEditBookModal();
+      setTimeout(() => location.reload(), 600);
+    } else {
+      showToast(res.message, 'danger');
+    }
+  })
+  .catch(() => showToast("Error updating book.", 'danger'));
+}
+
+function submitAddCopy(e) {
+  e.preventDefault();
+  const bookId = document.getElementById('add-copy-book-id').value;
+  const count = document.getElementById('add-copy-count').value;
+
+  fetch(`/api/books/add-copy/${bookId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ count: count })
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      showToast(res.message, 'success');
+      closeAddCopyModal();
+      setTimeout(() => location.reload(), 600);
+    } else {
+      showToast(res.message, 'danger');
+    }
+  })
+  .catch(() => showToast("Error adding copies.", 'danger'));
+}
+
+function deleteBookAjax(bookId, title) {
+  if (confirm(`Are you sure you want to delete "${title}" from the library database?`)) {
+    fetch(`/api/books/delete/${bookId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    })
+    .then(r => r.json())
+    .then(res => {
+      if (res.success) {
+        showToast(res.message, 'success');
+        setTimeout(() => location.reload(), 600);
+      } else {
+        showToast(res.message, 'danger');
+      }
+    })
+    .catch(() => showToast("Error deleting book.", 'danger'));
+  }
+}
+</script>
+{% endblock %}
